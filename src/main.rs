@@ -86,6 +86,7 @@ impl EventHandler for Handler {
                     for val in test{
                         trt = format!("{}\n{:#?}", trt, val);
                     }
+                    println!(trt);
                     msg.reply(ctx,format!("{:#?}",trt));
                 }
                 "HELP"=>{
