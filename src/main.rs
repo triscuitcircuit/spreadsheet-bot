@@ -6,6 +6,8 @@ extern crate lazy_static;
 extern crate yard;
 
 use serenity::client::Client;
+use std::sync::Mutex;
+use serde::{Serialize, Deserialize};
 use serenity::model::channel::{Message, Embed};
 use serenity::prelude::{EventHandler, Context};
 use serenity::framework::standard::{
@@ -18,41 +20,68 @@ use serenity::framework::standard::{
 };
 use serenity::CacheAndHttp;
 struct General;
-
 use std::env;
 use std::thread;
 use serenity::client::validate_token;
 use serenity::utils::MessageBuilder;
 use serenity::model::gateway::Activity;
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
+use serenity::model::guild::Guild;
 
 struct Handler;
 
+lazy_static!{
+    static ref ARRAY:Mutex<Vec<InputInfo>> = Mutex::new(vec![InputInfo{
+        user: "".to_string(),
+        input: "".to_string(),
+        time: SystemTime::now()
+    }; 2]);
+}
+
+#[derive(Debug, Clone,Deserialize,Serialize)]
+struct InputInfo{
+    user: String,
+    input: String,
+    time: SystemTime
+}
+impl InputInfo{
+    pub fn new(user: String, input:String)->InputInfo{
+        self::InputInfo{
+            user,
+            input,
+            time: SystemTime::now()
+        }
+    }
+    pub fn get_info(self)-> String{
+        format!("last user: {}, entered command: {}, at time {:#?}",self.user,self.input,self.time)
+    }
+    fn add_elem(&mut self, input:InputInfo){
+
+    }
+}
 
 impl EventHandler for Handler {
     fn message(&self, ctx: Context, msg: Message) {
+
         let activity = "use 'help;' for spreadsheet commands";
 
-        // let arc = Arc::new(&ctx);
-        //
+        // let arc = Arc::new(&ctx.shard);
         // let a = thread::spawn(move||{
         //     loop {
         //         thread::sleep(Duration::from_secs(15));
         //         for i in 0..=activity.len()-5 {
-        //             arc.clone().set_activity(Activity::playing(activity[i..i + 5].as_ref()));
+        //             arc.set_activity(Option::from(Activity::playing(activity[i..i + 5].as_ref())));
         //         }
         //     }
         // });
 
         if (msg.content.starts_with(";")|| msg.content.ends_with(";")) && msg.content.len() > 1 {
-            let mut input = &msg.content[1..msg.content.len()];
-            if msg.content.ends_with(";"){
-                input = &msg.content[0..msg.content.len()-1];
-            }
+            let input = &msg.content.replace(";","");
             match input.to_uppercase().as_ref(){
                 "SERVERS"=>{
-                    msg.reply(ctx,"test");
+                    let string = ctx.clone();
+                    msg.reply(ctx,format!("{:#?}",string.cache.read().users.iter().last()));
                 }
                 "HELP"=>{
                     let url = "https://discordapp.com/api/oauth2/authorize?client_id=684150439721304095&permissions=0&scope=bot";
@@ -81,6 +110,7 @@ impl EventHandler for Handler {
                 }
                 _=>{
                     let mut  l = spreadsheet::enter_command(input.parse().unwrap());
+
                     println!("username:{},command:{}",msg.author.name,msg.content);
                     println!("user id:{}, username:{}, spreadsheet \n{}",msg.author.id,msg.author.name,l);
                     l = format!("\n```{}```",l);
@@ -93,6 +123,7 @@ impl EventHandler for Handler {
 
 
 fn main() {
+
     let token = env::var("DISCORD_TOKEN")
         .expect("Expected a token in the environment");
     let mut client = Client::new(&token, Handler).expect("Err creating client");
