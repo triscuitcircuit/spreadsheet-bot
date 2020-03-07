@@ -75,13 +75,18 @@ impl EventHandler for Handler {
         //         }
         //     }
         // });
-
+//test
         if (msg.content.starts_with(";")|| msg.content.ends_with(";")) && msg.content.len() > 1 {
             let input = &msg.content.replace(";","");
             match input.to_uppercase().as_ref(){
                 "SERVERS"=>{
                     let string = ctx.clone();
-                    msg.reply(ctx,format!("{:#?}",string.cache.read().users.iter().last()));
+                    let test = &string.cache.read().users;
+                    let mut trt:String = "".to_string();
+                    for val in test{
+                        trt = format!("{}\n{:#?}", trt, val);
+                    }
+                    msg.reply(ctx,format!("{:#?}",trt));
                 }
                 "HELP"=>{
                     let url = "https://discordapp.com/api/oauth2/authorize?client_id=684150439721304095&permissions=0&scope=bot";
