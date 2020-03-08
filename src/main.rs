@@ -81,13 +81,13 @@ impl EventHandler for Handler {
             match input.to_uppercase().as_ref(){
                 "SERVERS"=>{
                     let string = ctx.clone();
-                    let test = &string.cache.read().users;
+                    let test = &string.cache.read().guilds;
                     let mut trt:String = "".to_string();
                     for val in test{
-                        trt = format!("{}\n{:#?}", trt, val);
+                        trt = format!("{}\n> {}", trt, val.1.read().name);
                     }
-                    println!(trt);
-                    msg.reply(ctx,format!("{:#?}",trt));
+                    println!("{}",trt);
+                    msg.reply(ctx,format!("{}",trt));
                 }
                 "HELP"=>{
                     let url = "https://discordapp.com/api/oauth2/authorize?client_id=684150439721304095&permissions=0&scope=bot";
