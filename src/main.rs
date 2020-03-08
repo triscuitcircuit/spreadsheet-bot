@@ -40,27 +40,31 @@ impl EventHandler for Handler {
         ctx.set_activity(Activity::playing(&activity));
         if (msg.content.starts_with(";")|| msg.content.ends_with(";")) && msg.content.len() > 1 {
             let input = &msg.content.replace(";","");
-            match input.to_uppercase().as_ref(){
+            let mut input_arr:Vec<String> = input.split_whitespace().map(|x| x.to_string()).collect();
+            match input_arr[0].to_uppercase().as_ref(){
                 "SERVERS"=>{
-                    let mut input_arr:Vec<String> = input.split_whitespace().map(|x| x.to_string()).collect();
                     let string = ctx.clone();
                     let test = &string.cache.read().guilds;
                     let mut trt:String = "".to_string();
                     if input_arr.len() >= 2{
+                        println!("{:#?}",input_arr);
                         let c : u8 = match input_arr[1].trim_start_matches(|c: char| !c.is_ascii_digit()).parse::<u8>() {
                             Ok(output) => output,
                             Err(_e) => 0,
                         };
                         let mut i = 0;
                         let mut member_map= HashMap::new();
+                        let mut server_name: String = "".to_string();
                         for val in test{
                             member_map = val.1.read().members.clone();
+                            server_name = (&val.1.read().name).parse().unwrap();
                             if i >= c{
                              break;
                             }else{
                                 i += 1;
                             }
                         }
+                        trt = (&server_name).parse().unwrap();
                         for val in member_map{
                             trt = format!("{}\n> {}", trt, val.1.user.read().name);
                         }
