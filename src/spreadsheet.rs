@@ -1,12 +1,4 @@
-/*
-Copyright: Tristan Zippert
-University of Maine Computer Science
-Friday, Nov 29 2019
-*/
-
 use yard::{parser, evaluator};
-
-use std::{io};
 use std::borrow::Borrow;
 use std::fs;
 use std::io::{BufReader, Empty, Read, stdout};
@@ -51,14 +43,7 @@ pub(crate) fn enter_command(input: String) -> String{
         }
     }
 }
-//fn get_val(r: &usize,c: &usize)->Result<Cell,SpreadsheetError>{
-//    let mut db = GRID.lock().map_err(|_| SpreadsheetError::MutexError)?;
-//    Ok(db[*c as usize][*r as usize])
-//}
-//fn get_row(r:&usize)->Result<Vec<Cell>,SpreadsheetError>{
-//    let mut db = GRID.lock().map_err(|_| SpreadsheetError::MutexError)?;
-//    Ok(db[*r as usize])
-//}
+
 #[derive(Debug, Clone,Deserialize,Serialize)]
 enum Cell {
     Text(String),
@@ -174,13 +159,6 @@ impl FormulaCell{
                 }
                 return Ok(0.0)
             }
-            _=>{
-                if let Ok(tokens) = parser::parse(&input_arr.join(" ")){
-                    let result = evaluator::eval(&tokens);
-                    return Ok(result as f64);
-                }
-                return Ok(0.0)
-            }
             "AVG"=>{
                 if input_arr.len() >= 2 {
                     let input_loc:Vec<String> = input_arr[1]
@@ -216,6 +194,13 @@ impl FormulaCell{
                     return Ok(var/times)
                 }
 
+                return Ok(0.0)
+            }
+            _=>{
+                if let Ok(tokens) = parser::parse(&input_arr.join(" ")){
+                    let result = evaluator::eval(&tokens);
+                    return Ok(result as f64);
+                }
                 return Ok(0.0)
             }
         }
@@ -277,6 +262,9 @@ fn process_command(input:String) -> Result<String,SpreadsheetError>{
                 }
             }
             Ok(String::from("Loaded sheet"))
+        }
+        "EXPORT"=>{
+            Ok(String::from("Export command entered"))
         }
         "SAVE"=>{
             let db = GRID.lock().map_err(|_| SpreadsheetError::MutexError)?;
