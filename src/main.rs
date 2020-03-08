@@ -19,7 +19,6 @@ use serenity::framework::standard::{
     }
 };
 use serenity::CacheAndHttp;
-struct General;
 use std::env;
 use std::thread;
 use serenity::client::validate_token;
@@ -27,71 +26,57 @@ use serenity::utils::MessageBuilder;
 use serenity::model::gateway::Activity;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
-use serenity::model::guild::Guild;
+use serenity::model::guild::{Guild, Member};
+use serenity::http::routing::RouteInfo::CreateMessage;
+use serenity::builder::CreateEmbed;
+use std::collections::HashMap;
+use serenity::model::id::UserId;
 
 struct Handler;
-
-lazy_static!{
-    static ref ARRAY:Mutex<Vec<InputInfo>> = Mutex::new(vec![InputInfo{
-        user: "".to_string(),
-        input: "".to_string(),
-        time: SystemTime::now()
-    }; 2]);
-}
-
-#[derive(Debug, Clone,Deserialize,Serialize)]
-struct InputInfo{
-    user: String,
-    input: String,
-    time: SystemTime
-}
-impl InputInfo{
-    pub fn new(user: String, input:String)->InputInfo{
-        self::InputInfo{
-            user,
-            input,
-            time: SystemTime::now()
-        }
-    }
-    pub fn get_info(self)-> String{
-        format!("last user: {}, entered command: {}, at time {:#?}",self.user,self.input,self.time)
-    }
-    fn add_elem(&mut self, input:InputInfo){
-
-    }
-}
-
 impl EventHandler for Handler {
     fn message(&self, ctx: Context, msg: Message) {
 
         let activity = "use 'help;' for spreadsheet commands";
-
-        // let arc = Arc::new(&ctx.shard);
-        // let a = thread::spawn(move||{
-        //     loop {
-        //         thread::sleep(Duration::from_secs(15));
-        //         for i in 0..=activity.len()-5 {
-        //             arc.set_activity(Option::from(Activity::playing(activity[i..i + 5].as_ref())));
-        //         }
-        //     }
-        // });
-//test
+        ctx.set_activity(Activity::playing(&activity));
         if (msg.content.starts_with(";")|| msg.content.ends_with(";")) && msg.content.len() > 1 {
             let input = &msg.content.replace(";","");
             match input.to_uppercase().as_ref(){
                 "SERVERS"=>{
+                    let mut input_arr:Vec<String> = input.split_whitespace().map(|x| x.to_string()).collect();
                     let string = ctx.clone();
                     let test = &string.cache.read().guilds;
                     let mut trt:String = "".to_string();
-                    for val in test{
-                        trt = format!("{}\n> {}", trt, val.1.read().name);
+                    if input_arr.len() >= 2{
+                        let c : u8 = match input_arr[1].trim_start_matches(|c: char| !c.is_ascii_digit()).parse::<u8>() {
+                            Ok(output) => output,
+                            Err(_e) => 0,
+                        };
+                        let mut i = 0;
+                        let mut member_map= HashMap::new();
+                        for val in test{
+                            member_map = val.1.read().members.clone();
+                            if i >= c{
+                             break;
+                            }else{
+                                i += 1;
+                            }
+                        }
+                        for val in member_map{
+                            trt = format!("{}\n> {}", trt, val.1.user.read().name);
+                        }
+                        if let Err(why) =  msg.reply(ctx,format!("{}",trt)){
+                            println!("Error sending message: {:?}",why);
+                        };
+                    }else{
+                        for val in test{
+                            trt = format!("{}\n> {}", trt, val.1.read().name);
+                        }
+                        println!("{}",trt);
+
+                        if let Err(why) =  msg.reply(ctx,format!("{}",trt)){
+                            println!("Error sending message: {:?}",why);
+                        };
                     }
-                    println!("{}",trt);
-
-                    if let Err(why) =  msg.reply(ctx,format!("{}",trt)){
-                        println!("Error sending message: {:?}",why);
-                    };
-
                 }
                 "HELP"=>{
                     let url = "https://discordapp.com/api/oauth2/authorize?client_id=684150439721304095&permissions=0&scope=bot";
@@ -118,7 +103,11 @@ impl EventHandler for Handler {
                     };
                 }
                 "CREDIT"=>{
-                    if let Err(why) =msg.reply(ctx,"```Spreadsheet bot creator: Chilla#4568\nDiscord bot API credit: Serenity Team```"){
+                    let response = MessageBuilder::new()
+                        .push_quote_line("Spreadsheet bot creator: Chilla#4568")
+                        .push_quote_line("Discord bot API credit: Serenity Team");
+                    //msg.channel_id.broadcast_typing(ctx);
+                    if let Err(why) =msg.channel_id.say(&ctx.http,&response){
                         println!("Error sending message: {:?}",why);
                     };
                 }
