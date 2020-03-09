@@ -40,7 +40,7 @@ impl EventHandler for Handler {
         ctx.set_activity(Activity::playing(&activity));
         if (msg.content.starts_with(";")|| msg.content.ends_with(";")) && msg.content.len() > 1 {
             let input = &msg.content.replace(";","");
-            let mut input_arr:Vec<String> = input.split_whitespace().map(|x| x.to_string()).collect();
+            let mut input_arr:Vec<String> = input.splitn(2," ").map(|x| x.to_string()).collect();
             match input_arr[0].to_uppercase().as_ref(){
                 "SERVERS"=>{
                     let string = ctx.clone();
@@ -48,29 +48,25 @@ impl EventHandler for Handler {
                     let mut trt:String = "".to_string();
                     if input_arr.len() >= 2{
                         println!("{:#?}",input_arr);
-                        let c : u8 = match input_arr[1].trim_start_matches(|c: char| !c.is_ascii_digit()).parse::<u8>() {
-                            Ok(output) => output,
-                            Err(_e) => 0,
-                        };
-                        let mut i = 0;
-                        let mut member_map= HashMap::new();
-                        let mut server_name: String = "".to_string();
-                        for val in test{
-                            member_map = val.1.read().members.clone();
-                            server_name = (&val.1.read().name).parse().unwrap();
-                            if i >= c{
-                             break;
-                            }else{
-                                i += 1;
+                        let input_two = &input_arr[1];
+                        if &input_two[0..1] == "\"" && &input_two[input_two.len()-1..input_two.len()] == "\""{
+                            let server_named = &input_two[1..input_two.len()-1];
+                            for (guild,arc) in test{
+                                if arc.read().name.eq(server_named){
+                                    for (userid,username) in &arc.read().members{
+                                        trt = format!("{} userid:`{}` username:`{}`\n",trt,userid,username);
+                                    }
+                                }
                             }
+                            if let Err(why) =  msg.reply(ctx,format!("{}",trt)){
+                                println!("Error sending message: {:?}",why);
+                            };
+
+                        } else{
+                            if let Err(why) =  msg.reply(ctx,format!("{}","```Error parsing server name, please enter with quotes,")){
+                                println!("Error sending message: {:?}",why);
+                            };
                         }
-                        trt = (&server_name).parse().unwrap();
-                        for val in member_map{
-                            trt = format!("{}\n> {}", trt, val.1.user.read().name);
-                        }
-                        if let Err(why) =  msg.reply(ctx,format!("{}",trt)){
-                            println!("Error sending message: {:?}",why);
-                        };
                     }else{
                         for val in test{
                             trt = format!("{}\n> {}", trt, val.1.read().name);
