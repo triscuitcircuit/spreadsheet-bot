@@ -53,14 +53,18 @@ impl EventHandler for Handler {
                             let server_named = &input_two[1..input_two.len()-1];
                             for (guild,arc) in test{
                                 if arc.read().name.eq(server_named){
+                                    let mut response = MessageBuilder::new();
                                     for (userid,username) in &arc.read().members{
-                                        trt = format!("{} userid:`{}` username:`{}`\n",trt,userid,username);
+                                            response.push(format!("{} userid:`{}` username:`{}`\n",trt,userid,username.user.read().name));
+                                        if let Err(why) =msg.channel_id.say(&ctx.http,&response){
+                                            println!("Error sending message: {:?}",why);
+                                        };
                                     }
                                 }
                             }
-                            if let Err(why) =  msg.reply(ctx,format!("{}",trt)){
-                                println!("Error sending message: {:?}",why);
-                            };
+                            // if let Err(why) =  msg.reply(ctx,format!("{}",trt)){
+                            //     println!("Error sending message: {:?}",why);
+                            // };
 
                         } else{
                             if let Err(why) =  msg.reply(ctx,format!("{}","```Error parsing server name, please enter with quotes,")){
