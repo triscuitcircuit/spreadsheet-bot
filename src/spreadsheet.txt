@@ -1,0 +1,1 @@
+[[{"Number":29.0},{"Formula":{"command":"( sum a1-b1 )"}},"Empty","Empty","Empty","Empty"],[{"Text":"lasagna"},"Empty","Empty","Empty","Empty","Empty"],[{"Formula":{"command":"( a1 * 8 )"}},"Empty","Empty","Empty","Empty","Empty"],["Empty","Empty","Empty","Empty","Empty","Empty"],["Empty","Empty","Empty","Empty","Empty","Empty"],["Empty","Empty","Empty","Empty","Empty","Empty"]]

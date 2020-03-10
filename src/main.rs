@@ -55,11 +55,16 @@ impl EventHandler for Handler {
                                 if arc.read().name.eq(server_named){
                                     let mut response = MessageBuilder::new();
                                     for (userid,username) in &arc.read().members{
-                                            response.push(format!("{} userid:`{}` username:`{}`\n",trt,userid,username.user.read().name));
-                                        if let Err(why) =msg.channel_id.say(&ctx.http,&response){
+                                            response.push(format!(" userid:`{}` username:`{}`\n",userid,username.user.read().name));
+											println!("{}",format!(" userid:`{}` username:`{}`\n",userid,username.user.read().name));
+											for f in &username.roles{
+												//response.push(format!("roles: {}\n",f.to_role_cached(&ctx.cache).unwrap().name));
+												println!("{}",format!("roles: {}\n",f.to_role_cached(&ctx.cache).unwrap().name));
+											}
+                                    }
+									if let Err(why) =msg.channel_id.say(&ctx.http,&response){
                                             println!("Error sending message: {:?}",why);
                                         };
-                                    }
                                 }
                             }
                             // if let Err(why) =  msg.reply(ctx,format!("{}",trt)){
@@ -67,7 +72,7 @@ impl EventHandler for Handler {
                             // };
 
                         } else{
-                            if let Err(why) =  msg.reply(ctx,format!("{}","```Error parsing server name, please enter with quotes,")){
+                            if let Err(why) =  msg.reply(ctx,format!("{}","``` Error parsing server name, please enter with quotes,")){
                                 println!("Error sending message: {:?}",why);
                             };
                         }
