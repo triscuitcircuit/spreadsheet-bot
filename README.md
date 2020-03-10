@@ -3,7 +3,7 @@
 
 Have you guys ever wanted a spreadsheet bot for discord where it emulates being at work?? well, now your oddly specific dreams of being a workaholic have come true.
 
-With this bot ( https://discordapp.com/api/oauth2/authorize?client_id=684150439721304095&permissions=0&scope=bot ) you can make it seem like you are working hard at the office. Just type **;help** to get started with your deep delve into Spreadsheet insanity.
+With this bot ([Bot Invite Link](https://discordapp.com/api/oauth2/authorize?client_id=684150439721304095&permissions=0&scope=bot)) you can make it seem like you are working hard at the office. Just type **;help** to get started with your deep delve into Spreadsheet insanity.
 
 Not only does this bot act as a spreadsheet, but it is the same spreadsheet across all the servers that it is in.
 
@@ -16,5 +16,5 @@ Features to come soon:
 - [ ] fix spreadsheet circular reference crash
 - [ ] admin config and command library
 - [ ] private spreadsheet config instead of inter-server
-- [ ] admin changelog
-- [ ] 
+- [ ] admin changelog for servers config
+- [ ] role assignment for inter-server
