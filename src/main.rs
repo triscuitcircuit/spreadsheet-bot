@@ -61,6 +61,7 @@ impl EventHandler for Handler {
 												//response.push(format!("roles: {}\n",f.to_role_cached(&ctx.cache).unwrap().name));
 												println!("{}",format!("roles: {}\n",f.to_role_cached(&ctx.cache).unwrap().name));
 											}
+                                        //test
                                     }
 									if let Err(why) =msg.channel_id.say(&ctx.http,&response){
                                             println!("Error sending message: {:?}",why);
