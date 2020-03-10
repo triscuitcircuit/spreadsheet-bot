@@ -1,4 +1,4 @@
-# spreadsheet-bot [![Build Status](https://travis-ci.com/Triscuit-circuit/spreadsheet-bot.svg?token=SfpfaTZk1PvqvrRX4uGo&branch=master)](https://travis-ci.com/Triscuit-circuit/spreadsheet-bot)
+# Spreadsheet-bot [![Build Status](https://travis-ci.com/Triscuit-circuit/spreadsheet-bot.svg?token=SfpfaTZk1PvqvrRX4uGo&branch=master)](https://travis-ci.com/Triscuit-circuit/spreadsheet-bot)
 
 
 Have you guys ever wanted a spreadsheet bot for discord where it emulates being at work?? well, now your oddly specific dreams of being a workaholic have come true.
