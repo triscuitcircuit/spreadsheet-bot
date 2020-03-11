@@ -9,10 +9,13 @@ use serenity::{
         macros::{command,group,help,check}
     },
     utils::{content_safe,ContentSafeOptions,MessageBuilder},
-    client::bridge::gateway::ShardManager,
+    client::bridge::gateway::{ShardManager,ShardId}
 };
-use std::{collections,env,fmt::write,sync::Arc};
-use serenity::client::bridge::gateway::ShardId;
+use std::{collections::{HashSet},
+          env,fmt::write,
+          sync::Arc};
+use crate::commands::spreadsheet;
+
 pub(crate) struct ShardManagerContainer;
 impl TypeMapKey for ShardManagerContainer{
     type Value = Arc<Mutex<ShardManager>>;
@@ -106,6 +109,18 @@ fn about(ctx: &mut Context, msg: &Message)-> CommandResult{
         .push_quote_line("Discord bot API credit: Serenity Team");
     //msg.channel_id.broadcast_typing(ctx);
     if let Err(why) =msg.channel_id.say(&ctx.http,&response){
+        println!("Error sending message: {:?}",why);
+    };
+    Ok(())
+}
+#[command]
+fn spread(ctx: &mut Context, msg: &Message)-> CommandResult{
+    let input = &msg.content.replace(";s","");
+    let mut l = spreadsheet::enter_command(input.parse().unwrap());
+    println!("username:{},command:{}",msg.author.name,msg.content);
+    println!("user id:{}, username:{}, spreadsheet \n{}",msg.author.id,msg.author.name,l);
+    l = format!("\n```{}```",l);
+    if let Err(why) =  msg.reply(ctx,l ){
         println!("Error sending message: {:?}",why);
     };
     Ok(())

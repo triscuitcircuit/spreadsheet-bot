@@ -9,15 +9,11 @@ use serenity::client::Client;
 use std::sync::Mutex;
 use serde::{Serialize, Deserialize};
 use serenity::model::channel::{Message, Embed};
-use serenity::prelude::{EventHandler, Context};
-use serenity::framework::standard::{
-    StandardFramework,
-    CommandResult,
-    macros::{
-        command,
-        group
-    }
-};
+use serenity::prelude::{EventHandler, Context, TypeMapKey};
+use serenity::framework::standard::{StandardFramework, CommandResult, macros::{
+    command,
+    group
+}, HelpOptions, Args, CommandGroup, help_commands};
 use serenity::CacheAndHttp;
 use std::env;
 use std::thread;
@@ -34,28 +30,49 @@ use serenity::model::id::UserId;
 
 
 use commands::{
-    spreadsheet::*,
     bot_commands::*,
 };
-use crate::commands::spreadsheet;
 use serenity::model::event::ResumedEvent;
 
 #[group]
 #[commands(servers,ping,about)]
 struct General;
 
+// #[group]
+// #[commands(help)]
+// struct Help;
+
+// #[command]
+// #[wrong_channel = "Strike"]
+// #[lacking_permissions = "Hide"]
+// #[indention_prefix = "+"]
+// #[max_levenshtein_distance(3)]
+// #[command_not_found_text = "Could not find: `{}`."]
+// fn help(context: &mut Context, msg: &Message, args: Args, help_options: &'static HelpOptions,groups: &[&'static CommandGroup],owners: HashSet<UserId>)->CommandResult{
+//     help_commands::with_embeds(context, msg, args, &help_options, groups, owners)
+// }
+
+#[group]
+#[prefixes("s")]
+#[commands(spread)]
+struct Spread;
+
+struct CommandCounter;
+impl TypeMapKey for CommandCounter{
+    type Value = HashMap<String,u64>;
+}
 
 struct Handler;
 impl EventHandler for Handler {
-    fn ready(&self,_:Context,ready: Ready){
-        info!("Connected as {}", ready.user.name);
+    fn ready(&self,ctx:Context,ready: Ready){
+        let activity = "use 'help;' for spreadsheet commands";
+        ctx.set_activity(Activity::playing(&activity));
+        println!("Connected as {}", ready.user.name);
     }
     fn resume(&self,_:Context,_:ResumedEvent){
-        info!("Resumed");
+        println!("Resumed");
     }
     // fn message(&self, ctx: Context, msg: Message) {
-    //     let activity = "use 'help;' for spreadsheet commands";
-    //     ctx.set_activity(Activity::playing(&activity));
     //     if (msg.content.starts_with(";")|| msg.content.ends_with(";")) && msg.content.len() > 1 {
     //         let input = &msg.content.replace(";","");
     //         let mut input_arr:Vec<String> = input.splitn(2," ").map(|x| x.to_string()).collect();
@@ -81,22 +98,6 @@ impl EventHandler for Handler {
     //                     );
     //                     ret
     //                 }){
-    //                     println!("Error sending message: {:?}",why);
-    //                 };
-    //             }
-    //             _=>{
-    //                 let mut  l = spreadsheet::enter_command(input.parse().unwrap());
-    //
-    //                 println!("username:{},command:{}",msg.author.name,msg.content);
-    //                 println!("user id:{}, username:{}, spreadsheet \n{}",msg.author.id,msg.author.name,l);
-    //                 l = format!("\n```{}```",l);
-    //                 if let Err(why) =  msg.reply(ctx,l ){
-    //                     println!("Error sending message: {:?}",why);
-    //                 };
-    //             }
-    //         }
-    //     }
-    // }
 }
 
 
@@ -113,7 +114,6 @@ fn main() {
         Ok(info)=>{
             let mut set = HashSet::new();
             set.insert(info.owner.id);
-
             set
         },
         Err(why)=> panic!("Couldn't get application info: {:?}", why),
@@ -122,8 +122,19 @@ fn main() {
     client.with_framework(StandardFramework::new()
         .configure(|c| c
             .owners(owners)
-            .prefix("~"))
-        .group(&GENERAL_GROUP));
+            .prefix(";"))
+        .group(&GENERAL_GROUP)
+        //.group(&HELP_GROUP)
+        .group(&SPREAD_GROUP)
+        .before(|ctx, msg, command_name|{
+            println!("Got command '{}' by user '{}'", command_name, msg.author.name);
+            let mut data = ctx.data.write();
+            let counter = data.get_mut::<CommandCounter>().expect("Expected CommandCounter in ShareMap");
+            let entry = counter.entry(command_name.to_string()).or_insert(0);
+            *entry +=1;
+            true
+        }));
+
     if let Err(why) = client.start() {
         println!("Client error: {:?}", why);
     }
