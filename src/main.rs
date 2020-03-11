@@ -29,11 +29,19 @@ use std::time::{Duration, SystemTime};
 use serenity::model::guild::{Guild, Member};
 use serenity::http::routing::RouteInfo::CreateMessage;
 use serenity::builder::CreateEmbed;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use serenity::model::id::UserId;
 
 
+use commands::{
+    spreadsheet::*,
+    bot_commands::*,
+};
 use crate::commands::spreadsheet;
+#[group]
+#[commands(servers,ping,about)]
+struct General;
+
 
 struct Handler;
 impl EventHandler for Handler {
@@ -45,51 +53,6 @@ impl EventHandler for Handler {
             let input = &msg.content.replace(";","");
             let mut input_arr:Vec<String> = input.splitn(2," ").map(|x| x.to_string()).collect();
             match input_arr[0].to_uppercase().as_ref(){
-                "SERVERS"=>{
-                    let string = ctx.clone();
-                    let test = &string.cache.read().guilds;
-                    let mut trt:String = "".to_string();
-                    if input_arr.len() >= 2{
-                        println!("{:#?}",input_arr);
-                        let input_two = &input_arr[1];
-                        if &input_two[0..1] == "\"" && &input_two[input_two.len()-1..input_two.len()] == "\""{
-                            let server_named = &input_two[1..input_two.len()-1];
-                            for (guild,arc) in test{
-                                if arc.read().name.eq(server_named){
-                                    let mut response = MessageBuilder::new();
-                                    for (userid,username) in &arc.read().members{
-                                            response.push(format!(" userid:`{}` username:`{}`\n",userid,username.user.read().name));
-											println!("{}",format!(" userid:`{}` username:`{}`\n",userid,username.user.read().name));
-											for f in &username.roles{
-												//response.push(format!("roles: {}\n",f.to_role_cached(&ctx.cache).unwrap().name));
-												println!("{}",format!("roles: {}\n",f.to_role_cached(&ctx.cache).unwrap().name));
-											}
-                                    }
-									if let Err(why) =msg.channel_id.say(&ctx.http,&response){
-                                            println!("Error sending message: {:?}",why);
-                                        };
-                                }
-                            }
-                            // if let Err(why) =  msg.reply(ctx,format!("{}",trt)){
-                            //     println!("Error sending message: {:?}",why);
-                            // };
-
-                        } else{
-                            if let Err(why) =  msg.reply(ctx,format!("{}","``` Error parsing server name, please enter with quotes,")){
-                                println!("Error sending message: {:?}",why);
-                            };
-                        }
-                    }else{
-                        for val in test{
-                            trt = format!("{}\n> {}", trt, val.1.read().name);
-                        }
-                        println!("{}",trt);
-
-                        if let Err(why) =  msg.reply(ctx,format!("{}",trt)){
-                            println!("Error sending message: {:?}",why);
-                        };
-                    }
-                }
                 "HELP"=>{
                     let url = "https://discordapp.com/api/oauth2/authorize?client_id=684150439721304095&permissions=0&scope=bot";
                     let help = format!(">>> Spreadsheet-bot command basics:\n\
@@ -114,15 +77,6 @@ impl EventHandler for Handler {
                         println!("Error sending message: {:?}",why);
                     };
                 }
-                "CREDIT"=>{
-                    let response = MessageBuilder::new()
-                        .push_quote_line("Spreadsheet bot creator: Chilla#4568")
-                        .push_quote_line("Discord bot API credit: Serenity Team");
-                    //msg.channel_id.broadcast_typing(ctx);
-                    if let Err(why) =msg.channel_id.say(&ctx.http,&response){
-                        println!("Error sending message: {:?}",why);
-                    };
-                }
                 _=>{
                     let mut  l = spreadsheet::enter_command(input.parse().unwrap());
 
@@ -144,6 +98,28 @@ fn main() {
     let token = env::var("DISCORD_TOKEN")
         .expect("Expected a token in the environment");
     let mut client = Client::new(&token, Handler).expect("Err creating client");
+    {
+        let mut data = client.data.write();
+        data.insert::<ShardManagerContainer>(Arc::clone(&client.shard_manager));
+    }
+    let owners = match client.cache_and_http.http.get_current_application_info(){
+        Ok(info)=>{
+            let mut set = HashSet::new();
+            set.insert(info.owner.id);
+
+            set
+        },
+        Err(why)=> panic!("Couldn't get application info: {:?}", why),
+
+    };
+    client.with_framework(StandardFramework::new()
+        .configure(|c| c
+            .owners(owners)
+            .prefix("~"))
+        .group(&GENERAL_GROUP));
+    if let Err(why) = client.start() {
+        println!("Client error: {:?}", why);
+    }
     if let Err(why) = client.start_shards(2) {
         println!("Client error: {:?}", why);
     }
