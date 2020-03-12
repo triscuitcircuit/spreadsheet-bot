@@ -68,7 +68,7 @@ fn servers(ctx: &mut Context,msg:&Message)->CommandResult{
 }
 #[command]
 fn ping(ctx: &mut Context, msg: &Message)-> CommandResult{
-    let data = ctx.data.read();
+    let data = &ctx.data.read();
     let shard_manager = match data.get::<ShardManagerContainer>(){
         Some(t) => t,
         None =>{
@@ -86,7 +86,16 @@ fn ping(ctx: &mut Context, msg: &Message)-> CommandResult{
             return Ok(());
         }
     };
-    let _ = msg.reply(&ctx, &format!("The shard latency is {:?}", runner.latency));
+    let rtr = String::from(format!("The shard latency is `{}`", runner.latency.unwrap().as_secs()));
+    let embed = Embed::fake(|e|
+        e
+            .title("ping")
+            .description(&rtr)
+    );
+
+    if let Err(why) = msg.channel_id.say(ctx.clone(),embed){
+        println!("{}","An error happened")
+    }
     Ok(())
 
 }
