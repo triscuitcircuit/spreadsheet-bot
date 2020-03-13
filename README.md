@@ -1,6 +1,4 @@
-# Spreadsheet-bot <a href="https://top.gg/bot/684150439721304095" >
-  <img src="https://top.gg/api/widget/status/684150439721304095.svg" alt="Spreadsheet-bot" />
-</a>[![Build Status](https://travis-ci.com/Triscuit-circuit/spreadsheet-bot.svg?token=SfpfaTZk1PvqvrRX4uGo&branch=master)](https://travis-ci.com/Triscuit-circuit/spreadsheet-bot)
+# Spreadsheet-bot[![Build Status](https://travis-ci.com/Triscuit-circuit/spreadsheet-bot.svg?token=SfpfaTZk1PvqvrRX4uGo&branch=master)](https://travis-ci.com/Triscuit-circuit/spreadsheet-bot) 
 
 <center><a href="https://top.gg/bot/684150439721304095" >
   <img src="https://top.gg/api/widget/684150439721304095.svg" alt="Spreadsheet-bot" />
