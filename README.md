@@ -1,6 +1,4 @@
-# Spreadsheet-bot [![Discord Bots](https://top.gg/api/widget/status/684150439721304095.svg)](https://top.gg/bot/684150439721304095)  
-
-[![Build Status](https://travis-ci.com/Triscuit-circuit/spreadsheet-bot.svg?token=SfpfaTZk1PvqvrRX4uGo&branch=master)](https://travis-ci.com/Triscuit-circuit/spreadsheet-bot)
+# Spreadsheet-bot [![Discord Bots](https://top.gg/api/widget/status/684150439721304095.svg)](https://top.gg/bot/684150439721304095)  [![Build Status](https://travis-ci.com/Triscuit-circuit/spreadsheet-bot.svg?token=SfpfaTZk1PvqvrRX4uGo&branch=master)](https://travis-ci.com/Triscuit-circuit/spreadsheet-bot)   [![Discord Bots](https://top.gg/api/widget/servers/684150439721304095.svg)](https://top.gg/bot/684150439721304095)   [![Discord Bots](https://top.gg/api/widget/lib/684150439721304095.svg)](https://top.gg/bot/684150439721304095)
 
 
 
