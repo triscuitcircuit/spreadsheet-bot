@@ -5,6 +5,7 @@ mod commands;
 extern crate lazy_static;
 extern crate yard;
 
+use serenity::http::{self,client::Http};
 use serenity::client::Client;
 use std::sync::Mutex;
 use serde::{Serialize, Deserialize};
@@ -33,6 +34,7 @@ use commands::{
     bot_commands::*,
 };
 use serenity::model::event::ResumedEvent;
+use serenity::cache::Settings;
 
 #[group]
 #[commands(servers,ping,about)]
@@ -99,8 +101,57 @@ impl EventHandler for Handler {
     //                     ret
     //                 }){
 }
+fn set_game_presence(ctx: &Context, game_name: &str) {
+    let game = serenity::model::gateway::Activity::playing(game_name);
+    let status = serenity::model::user::OnlineStatus::Online;
+    ctx.set_presence(Some(game), status);
+}
+fn set_game_presence_help(ctx: &Context) {
+    let prefix = get_command_prefix(ctx);
+    set_game_presence(ctx, &format!("Type {}help to get a list of available commands", prefix));
+}
+
+fn get_guilds(ctx: &Context) -> Result<usize, serenity::Error> {
+    let mut count = 0;
+    let mut last_guild_id = 0;
+    loop {
+        let guilds = ctx.http.get_guilds(&http::GuildPagination::After(last_guild_id.into()), 100)?;
+        let len = guilds.len();
+        count += len;
+        if len < 100 {
+            break;
+        }
+        if let Some(last) = guilds.last() {
+            last_guild_id = *last.id.as_u64();
+        }
+    }
+
+    Ok(count)
+}
+fn status_thread(user_id:UserId, ctx: Arc<Mutex<Context>>){
+    let dbl_api_key = {
+        let ctx = ctx.lock().unwrap();
+        let data = ctx.data.read();
+        let settings = data.get::<Settings>().unwrap().lock().unwrap();
+        settings.dbl_api_key.clone()
+    };
+    std::thread::spawn(move||
+        loop{
+            set_game_presence_help(&ctx.lock().unwrap());
+            std::thread::skeep(std::time::Duration::from_secs(30));
+
+            let guilds = get_guilds(&ctx.lock().unwrap());
+            match guilds{
+                Ok(count)=>{
+                    set_game_presence(&ctx.lock().unwrap(),&format!("Excelling {} servers",count));
+                }
+                Err(e) => error!("Error while retrieving count {}",e),
+            }
 
 
+        }
+    );
+}
 fn main() {
 
     let token = env::var("DISCORD_TOKEN")

@@ -116,6 +116,7 @@ fn about(ctx: &mut Context, msg: &Message)-> CommandResult{
     let response = MessageBuilder::new()
         .push_quote_line("Spreadsheet bot creator: Chilla#4568")
         .push_quote_line("Discord bot API credit: Serenity Team");
+
     //msg.channel_id.broadcast_typing(ctx);
     if let Err(why) =msg.channel_id.say(&ctx.http,&response){
         println!("Error sending message: {:?}",why);
