@@ -1,40 +1,56 @@
 mod commands;
 
 #[macro_use]
-//
+
+
 extern crate lazy_static;
 extern crate yard;
+extern crate typemap;
 
-use serenity::http::{self,client::Http};
-use serenity::client::Client;
-use std::sync::Mutex;
+use typemap::Key;
+
+
+use std::{
+    {env,thread},
+    sync::{Arc,Mutex},
+    time::{Duration,SystemTime},
+    collections::{HashMap,HashSet}
+};
+use serenity::{
+  client::Client,
+  CacheAndHttp,
+  http::{self,client::Http,routing::RouteInfo::CreateMessage},
+  client::validate_token,
+  model::{gateway::{Activity, Ready},
+          guild::{Guild, Member},id::UserId,
+          channel::{Message, Embed}
+         },
+  utils::MessageBuilder,
+  builder::CreateEmbed,
+};
+
 use serde::{Serialize, Deserialize};
-use serenity::model::channel::{Message, Embed};
 use serenity::prelude::{EventHandler, Context, TypeMapKey};
 use serenity::framework::standard::{StandardFramework, CommandResult, macros::{
     command,
     group
 }, HelpOptions, Args, CommandGroup, help_commands};
-use serenity::CacheAndHttp;
-use std::env;
-use std::thread;
-use serenity::client::validate_token;
-use serenity::utils::MessageBuilder;
-use serenity::model::gateway::{Activity, Ready};
-use std::sync::Arc;
-use std::time::{Duration, SystemTime};
-use serenity::model::guild::{Guild, Member};
-use serenity::http::routing::RouteInfo::CreateMessage;
-use serenity::builder::CreateEmbed;
-use std::collections::{HashMap, HashSet};
-use serenity::model::id::UserId;
 
 
 use commands::{
     bot_commands::*,
 };
 use serenity::model::event::ResumedEvent;
-use serenity::cache::Settings;
+#[derive(Default, Deserialize, Clone)]
+pub struct Settings {
+    pub discord_token: String,
+    pub dbl_api_key: Option<String>,
+    pub command_prefix: String,
+}
+impl Key for Settings {
+    type Value = Arc<Mutex<Settings>>;
+}
+
 
 #[group]
 #[commands(servers,ping,about)]
@@ -110,6 +126,12 @@ fn set_game_presence_help(ctx: &Context) {
     let prefix = get_command_prefix(ctx);
     set_game_presence(ctx, &format!("Type {}help to get a list of available commands", prefix));
 }
+fn get_command_prefix(ctx: &Context) -> String {
+    let data = ctx.data.read();
+    let settings = data.get::<Settings>().unwrap().lock().unwrap();
+    settings.command_prefix.clone()
+}
+
 
 fn get_guilds(ctx: &Context) -> Result<usize, serenity::Error> {
     let mut count = 0;
@@ -138,14 +160,14 @@ fn status_thread(user_id:UserId, ctx: Arc<Mutex<Context>>){
     std::thread::spawn(move||
         loop{
             set_game_presence_help(&ctx.lock().unwrap());
-            std::thread::skeep(std::time::Duration::from_secs(30));
+            std::thread::sleep(std::time::Duration::from_secs(30));
 
             let guilds = get_guilds(&ctx.lock().unwrap());
             match guilds{
                 Ok(count)=>{
                     set_game_presence(&ctx.lock().unwrap(),&format!("Excelling {} servers",count));
                 }
-                Err(e) => error!("Error while retrieving count {}",e),
+                Err(e) => println!("Error while retrieving count {}",e),
             }
 
 

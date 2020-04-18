@@ -13,6 +13,7 @@ serde_json = "1.0"
 yard = "0.2.5"
 cc = { version = "1.0", features = ["parallel"] }
 libc = "0.2.0"
+typemap = "0.3.3"
 
 [dependencies.serenity]
 serenity = "0.8.0"
