@@ -83,8 +83,6 @@ impl TypeMapKey for CommandCounter{
 struct Handler;
 impl EventHandler for Handler {
     fn ready(&self,ctx:Context,ready: Ready){
-        let activity = "use 'help;' for spreadsheet commands";
-        ctx.set_activity(Activity::playing(&activity));
         println!("Connected as {}", ready.user.name);
     }
     fn resume(&self,_:Context,_:ResumedEvent){
