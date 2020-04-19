@@ -38,6 +38,8 @@ use commands::{
     bot_commands::*,
 };
 use serenity::model::event::ResumedEvent;
+use std::path::Path;
+
 #[derive(Default, Deserialize, Clone)]
 pub struct Settings {
     pub discord_token: String,
@@ -142,7 +144,9 @@ fn status_thread(user_id:UserId, ctx: Arc<Mutex<Context>>){
 }
 
 fn init_settings() -> Settings {
-    let mut f = std::fs::File::open("config.toml").expect("Could not find the config.toml file. Please copy config.toml.example to config.toml and edit the resulting file");
+    let path = Path::new("config.toml");
+    path.display();
+    let mut f = std::fs::File::open(&path).expect("Could not find the config.toml file. Please copy config.toml.example to config.toml and edit the resulting file");
     let mut contents = String::new();
     f.read_to_string(&mut contents)
         .expect("Could not read configuration file");
