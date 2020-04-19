@@ -143,6 +143,7 @@ fn status_thread(user_id:UserId, ctx: Arc<Mutex<Context>>){
     );
 }
 
+
 fn init_settings() -> Settings {
     let path = Path::new("config.toml");
     path.display();
@@ -205,13 +206,6 @@ fn main() {
         Err(why)=> panic!("Couldn't get application info: {:?}", why),
 
     };
-    let settings = init_settings();
-    {
-        let mut data = client.data.write();
-        data.insert::<Settings>(Arc::new(Mutex::new(settings)));
-    }
-
-    let settings = init_settings();
     client.with_framework(StandardFramework::new()
         .configure(|c| c
             .owners(owners)
