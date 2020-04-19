@@ -198,18 +198,20 @@ fn main() {
         );
     let shard_manager = client.shard_manager.clone();
     std::thread::spawn(move||{
-        std::thread::sleep(std::time::Duration::from_secs(30));
+        loop {
+            std::thread::sleep(std::time::Duration::from_secs(30));
 
-        let lock = shard_manager.lock();
-        let shard_runners = lock.runners.lock();
+            let lock = shard_manager.lock();
+            let shard_runners = lock.runners.lock();
 
-        for(id,runner) in shard_runners.iter(){
-            println!(
-                "Shard ID {} is {} with a latency of {:?}",
-                id,
-                runner.stage,
-                runner.latency,
-            );
+            for (id, runner) in shard_runners.iter() {
+                println!(
+                    "Shard ID {} is {} with a latency of {:?}",
+                    id,
+                    runner.stage,
+                    runner.latency,
+                );
+            }
         }
     });
 

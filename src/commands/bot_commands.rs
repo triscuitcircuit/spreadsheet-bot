@@ -81,7 +81,8 @@ fn invite(ctx: &mut Context, msg: &Message) -> CommandResult {
     let link = format!("\nhttps://discordapp.com/api/oauth2/authorize?client_id={}&permissions=0&scope=bot", user.id);
     if let Err(why) = msg.author.direct_message(ctx,|ret|{
         ret.embed(|r|
-            r.description(&link).color((0,255,0))
+            r.description("Share the spreadsheet chaos with this link:")
+                .description(&link).color((0,255,0))
         );
         ret
     }){
@@ -110,14 +111,14 @@ fn ping(ctx: &mut Context, msg: &Message)-> CommandResult{
             return Ok(());
         }
     };
-    let rtr = String::from(format!("The shard latency is `{}`",runner.latency.unwrap().as_secs()));
+    let rtr = String::from(format!("> The shard latency is `{}`",runner.latency.unwrap().as_secs()));
     let embed = Embed::fake(|e|
         e
             .title("ping")
             .description(&rtr)
     );
 
-    if let Err(why) = msg.channel_id.say(ctx.clone(),embed){
+    if let Err(why) = msg.channel_id.say(ctx.clone(),rtr){
         println!("{}","An error happened")
     }
     Ok(())
@@ -167,16 +168,19 @@ fn spreadsheethelp(ctx: &mut Context, msg: &Message)-> CommandResult{
 #[description = "Information about lord Spreadsheetbot"]
 fn about(ctx: &mut Context, msg: &Message)-> CommandResult{
     let response = MessageBuilder::new()
+        .push_quote_line("Spreadsheet bot")
+        .push_quote_line("use command ;sh for spreadsheet help")
         .push_quote_line("Spreadsheet bot creator: Chilla#4568")
         .push_quote_line("Discord bot API credit: Serenity Team");
-    let embed = Embed::fake(|e|
-        e
-            .title("Spreadsheet bot")
-            .description("use command `;sh` for spreadsheet help")
-            .description(response)
-            .color((0,255,0))
-    );
-    if let Err(why) =msg.channel_id.say(&ctx.http,&embed){
+
+    // let embed = Embed::fake(|e|
+    //     e
+    //         .title("Spreadsheet bot")
+    //         .description("use command `;sh` for spreadsheet help")
+    //         .description(response)
+    //         .color((0,255,0))
+    // );
+    if let Err(why) =msg.channel_id.say(&ctx.http,&response){
         println!("Error sending message: {:?}",why);
     };
     Ok(())
