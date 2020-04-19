@@ -34,7 +34,7 @@ use serenity::prelude::{EventHandler, Context, TypeMapKey};
 use serenity::framework::standard::{StandardFramework, CommandResult, macros::{
     command,
     group
-}, HelpOptions, Args, CommandGroup, help_commands};
+}, HelpOptions, Args, CommandGroup, help_commands, CommandOptions, CheckResult};
 
 
 use commands::{
@@ -51,28 +51,32 @@ impl Key for Settings {
     type Value = Arc<Mutex<Settings>>;
 }
 
-
-#[group]
-#[commands(servers,ping,about)]
-struct General;
-
-// #[group]
-// #[commands(help)]
-// struct Help;
-
-// #[command]
-// #[wrong_channel = "Strike"]
-// #[lacking_permissions = "Hide"]
-// #[indention_prefix = "+"]
-// #[max_levenshtein_distance(3)]
-// #[command_not_found_text = "Could not find: `{}`."]
-// fn help(context: &mut Context, msg: &Message, args: Args, help_options: &'static HelpOptions,groups: &[&'static CommandGroup],owners: HashSet<UserId>)->CommandResult{
-//     help_commands::with_embeds(context, msg, args, &help_options, groups, owners)
+// #[check]
+// #[name = "Admin"]
+// fn admin_check(ctx: &mut Context, msg: &Message, _: &mut Args, _: &CommandOptions) -> CheckResult {
+//     if let Some(member) = msg.member(&ctx.cache) {
+//         if let Ok(permissions) = member.permissions(&ctx.cache) {
+//             return permissions.administrator().into();
+//         }
+//     }
+//
+//     false.into()
 // }
 
+
 #[group]
-#[prefixes("s")]
+#[commands(servers)]
+#[description = ":star: Administrator"]
+struct Owners;
+
+#[group]
+#[commands(ping,about)]
+#[description = ":clipboard: About"]
+struct General;
+
+#[group]
 #[commands(spread)]
+#[description = ":bar_chart: Spreadsheet"]
 struct Spread;
 
 struct CommandCounter;
@@ -83,7 +87,9 @@ impl TypeMapKey for CommandCounter{
 struct Handler;
 impl EventHandler for Handler {
     fn ready(&self,ctx:Context,ready: Ready){
+        let ctx = Arc::new(Mutex::new(ctx));
         println!("Connected as {}", ready.user.name);
+        status_thread(ready.user.id,ctx);
     }
     fn resume(&self,_:Context,_:ResumedEvent){
         println!("Resumed");
@@ -159,7 +165,6 @@ fn status_thread(user_id:UserId, ctx: Arc<Mutex<Context>>){
         loop{
             set_game_presence_help(&ctx.lock().unwrap());
             std::thread::sleep(std::time::Duration::from_secs(30));
-
             let guilds = get_guilds(&ctx.lock().unwrap());
             match guilds{
                 Ok(count)=>{

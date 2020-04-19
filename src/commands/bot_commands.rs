@@ -22,6 +22,7 @@ impl TypeMapKey for ShardManagerContainer{
 }
 
 #[command]
+#[owners_only]
 fn servers(ctx: &mut Context,msg:&Message)->CommandResult{
     let string = ctx.clone();
     let input = &msg.content;
@@ -67,6 +68,21 @@ fn servers(ctx: &mut Context,msg:&Message)->CommandResult{
     Ok(())
 }
 #[command]
+#[description = "Get a link for the bot to spread more joys of spreadsheets"]
+fn invite(ctx: &mut Context, msg: &Message) -> CommandResult {
+    let user = match ctx.http.get_current_user() {
+        Ok(user) => user,
+        Err(_) => {
+            let _ = msg.reply(ctx, "An error occurred.");
+            return Ok(());
+        }
+    };
+    let link = format!("https://discordapp.com/api/oauth2/authorize?client_id={}&permissions=0&scope=bot", user.id);
+    let _ = msg.reply(ctx, &format!("Use this link to invite me to another server: {}", link))?;
+    Ok(())
+}
+#[command]
+#[description = "get the current ping of the bot"]
 fn ping(ctx: &mut Context, msg: &Message)-> CommandResult{
     let data = &ctx.data.read();
     let shard_manager = match data.get::<ShardManagerContainer>(){
@@ -86,7 +102,8 @@ fn ping(ctx: &mut Context, msg: &Message)-> CommandResult{
             return Ok(());
         }
     };
-    let rtr = String::from(format!("The shard latency is `{}`", runner.latency.unwrap().as_secs()));
+    let time = runner.latency.unwrap().as_secs();
+    let rtr = String::from(format!("The shard latency is `{}`",time));
     let embed = Embed::fake(|e|
         e
             .title("ping")
@@ -112,6 +129,7 @@ fn config(ctx: &mut Context, msg: &Message)-> CommandResult{
     Ok(())
 }
 #[command]
+#[description = "Information about lord Spreadsheetbot"]
 fn about(ctx: &mut Context, msg: &Message)-> CommandResult{
     let response = MessageBuilder::new()
         .push_quote_line("Spreadsheet bot creator: Chilla#4568")
@@ -124,6 +142,8 @@ fn about(ctx: &mut Context, msg: &Message)-> CommandResult{
     Ok(())
 }
 #[command]
+#[description = "interact with the spreadsheet"]
+#[aliases("s")]
 fn spread(ctx: &mut Context, msg: &Message)-> CommandResult{
     let input = &msg.content.replace(";s","");
     let mut l = spreadsheet::enter_command(input.parse().unwrap());
@@ -135,3 +155,15 @@ fn spread(ctx: &mut Context, msg: &Message)-> CommandResult{
     };
     Ok(())
 }
+#[help]
+fn spreadsheetbot_help(
+    context: &mut Context,
+    msg: &Message,
+    args: Args,
+    help_options: &'static HelpOptions,
+    groups: &[&'static CommandGroup],
+    owners: HashSet<UserId>
+) -> CommandResult {
+    help_commands::with_embeds(context, msg, args, help_options, groups, owners)
+}
+
