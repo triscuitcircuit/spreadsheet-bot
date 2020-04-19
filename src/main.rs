@@ -61,12 +61,14 @@ impl TypeMapKey for CommandCounter{
 struct Handler;
 impl EventHandler for Handler {
     fn ready(&self,ctx:Context,ready: Ready){
-        set_game_presence_help(&ctx);
+        //set_game_presence_help(&ctx);
         let ctx = Arc::new(Mutex::new(ctx));
         if let Some(shard) = ready.shard {
             match shard[0] {
                 0 => {
+
                     println!("Connected as {}", ready.user.name);
+                    status_thread(ready.user.id, ctx)
                 },
                 1 => {
                     println!("{}","thread active");
@@ -93,7 +95,7 @@ fn set_game_presence(ctx: &Context, game_name: &str) {
 }
 fn set_game_presence_help(ctx: &Context) {
     let prefix = String::from(";");
-    set_game_presence(ctx, &format!("Type {}help to get a list of available commands", prefix));
+    set_game_presence(ctx, &format!("Type {}sh for spreadsheet help", prefix));
 }
 fn get_command_prefix(ctx: &Context) -> String {
     let data = ctx.data.read();
@@ -121,7 +123,7 @@ fn status_thread(user_id:UserId, ctx: Arc<Mutex<Context>>){
     std::thread::spawn(move||
         loop{
             set_game_presence_help(&ctx.lock().unwrap());
-            std::thread::sleep(std::time::Duration::from_secs(20));
+            std::thread::sleep(std::time::Duration::from_secs(30));
             let guilds = get_guilds(&ctx.lock().unwrap());//TODO errors out here
             match guilds{
                 Ok(count)=>{
