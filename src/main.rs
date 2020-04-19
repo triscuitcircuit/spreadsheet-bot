@@ -34,9 +34,7 @@ use serenity::prelude::{EventHandler, Context, TypeMapKey};
 use serenity::framework::standard::{StandardFramework, CommandResult, macros::{
     command,
     group
-}, HelpOptions, Args, CommandGroup, help_commands, CommandOptions, CheckResult};
-
-
+}, HelpOptions, Args, CommandGroup, help_commands, CommandOptions, CheckResult, DispatchError};
 use commands::{
     bot_commands::*,
 };
@@ -51,17 +49,6 @@ impl Key for Settings {
     type Value = Arc<Mutex<Settings>>;
 }
 
-// #[check]
-// #[name = "Admin"]
-// fn admin_check(ctx: &mut Context, msg: &Message, _: &mut Args, _: &CommandOptions) -> CheckResult {
-//     if let Some(member) = msg.member(&ctx.cache) {
-//         if let Ok(permissions) = member.permissions(&ctx.cache) {
-//             return permissions.administrator().into();
-//         }
-//     }
-//
-//     false.into()
-// }
 
 
 #[group]
@@ -88,8 +75,27 @@ struct Handler;
 impl EventHandler for Handler {
     fn ready(&self,ctx:Context,ready: Ready){
         let ctx = Arc::new(Mutex::new(ctx));
-        println!("Connected as {}", ready.user.name);
-        status_thread(ready.user.id,ctx);
+
+        if let Some(shard) = ready.shard {
+            // Note that array index 0 is 0-indexed, while index 1 is 1-indexed.
+            //
+            // This may seem unintuitive, but it models Discord's behaviour.
+            match shard[0] {
+                0 => {
+                    println!("Connected as {}", ready.user.name);
+                    //info!("Open this link in a web browser to invite {} to a Discord server:\r\nhttps://discordapp.com/oauth2/authorize?client_id={}&scope=bot&permissions=378944", ready.user.name, ready.user.id);
+                },
+                1 => status_thread(ready.user.id, ctx),
+                _ => { },
+            };
+
+            println!(
+                "{} is connected on shard {}/{}!",
+                ready.user.name,
+                shard[0],
+                shard[1],
+            );
+        }
     }
     fn resume(&self,_:Context,_:ResumedEvent){
         println!("Resumed");
@@ -200,16 +206,11 @@ fn main() {
             .owners(owners)
             .prefix(";"))
         .group(&GENERAL_GROUP)
-        //.group(&HELP_GROUP)
+        .group(&OWNERS_GROUP)
         .group(&SPREAD_GROUP)
-        .before(|ctx, msg, command_name|{
-            println!("Got command '{}' by user '{}'", command_name, msg.author.name);
-            // let mut data = ctx.data.write();
-            // let counter = data.get_mut::<CommandCounter>().expect("Expected CommandCounter in ShareMap");
-            // let entry = counter.entry(command_name.to_string()).or_insert(0);
-            // *entry +=1;
-            true
-        }));
+        .help(&SPREADSHEETBOT_HELP)
+
+        );
 
     if let Err(why) = client.start() {
         println!("Client error: {:?}", why);

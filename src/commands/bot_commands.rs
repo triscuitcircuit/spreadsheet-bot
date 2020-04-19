@@ -26,6 +26,7 @@ impl TypeMapKey for ShardManagerContainer{
 fn servers(ctx: &mut Context,msg:&Message)->CommandResult{
     let string = ctx.clone();
     let input = &msg.content;
+
     let mut input_arr:Vec<String> = input.splitn(2," ").map(|x| x.to_string()).collect();
     let test = &string.cache.read().guilds;
     let mut trt:String = "".to_string();
@@ -145,7 +146,12 @@ fn about(ctx: &mut Context, msg: &Message)-> CommandResult{
 #[description = "interact with the spreadsheet"]
 #[aliases("s")]
 fn spread(ctx: &mut Context, msg: &Message)-> CommandResult{
-    let input = &msg.content.replace(";s","");
+    let mut input: String = String::from("");
+    if msg.content.contains(";s ") {
+        input = format!("{}",msg.content.replace(";s ", ""));
+    }else{
+        input = format!("{}",msg.content.replace(";spread ", ""));
+    }
     let mut l = spreadsheet::enter_command(input.parse().unwrap());
     println!("username:{},command:{}",msg.author.name,msg.content);
     println!("user id:{}, username:{}, spreadsheet \n{}",msg.author.id,msg.author.name,l);
