@@ -53,6 +53,7 @@ impl Key for Settings {
 
 #[group]
 #[commands(servers)]
+#[checks(Admin)]
 #[description = ":star: Administrator"]
 struct Owners;
 
@@ -62,7 +63,7 @@ struct Owners;
 struct General;
 
 #[group]
-#[commands(spread)]
+#[commands(spread,invite)]
 #[description = ":bar_chart: Spreadsheet"]
 struct Spread;
 
@@ -85,7 +86,9 @@ impl EventHandler for Handler {
                     println!("Connected as {}", ready.user.name);
                     //info!("Open this link in a web browser to invite {} to a Discord server:\r\nhttps://discordapp.com/oauth2/authorize?client_id={}&scope=bot&permissions=378944", ready.user.name, ready.user.id);
                 },
-                1 => status_thread(ready.user.id, ctx),
+                1 => {
+                    println!("{}","thread active");
+                    status_thread(ready.user.id, ctx)},
                 _ => { },
             };
 
