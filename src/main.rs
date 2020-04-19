@@ -199,10 +199,10 @@ fn main() {
         .group(&SPREAD_GROUP)
         .before(|ctx, msg, command_name|{
             println!("Got command '{}' by user '{}'", command_name, msg.author.name);
-            let mut data = ctx.data.write();
-            let counter = data.get_mut::<CommandCounter>().expect("Expected CommandCounter in ShareMap");
-            let entry = counter.entry(command_name.to_string()).or_insert(0);
-            *entry +=1;
+            // let mut data = ctx.data.write();
+            // let counter = data.get_mut::<CommandCounter>().expect("Expected CommandCounter in ShareMap");
+            // let entry = counter.entry(command_name.to_string()).or_insert(0);
+            // *entry +=1;
             true
         }));
 
