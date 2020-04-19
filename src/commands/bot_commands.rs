@@ -78,8 +78,15 @@ fn invite(ctx: &mut Context, msg: &Message) -> CommandResult {
             return Ok(());
         }
     };
-    let link = format!("https://discordapp.com/api/oauth2/authorize?client_id={}&permissions=0&scope=bot", user.id);
-    let _ = msg.reply(ctx, &format!("Use this link to invite me to another server: {}", link))?;
+    let link = format!("\nhttps://discordapp.com/api/oauth2/authorize?client_id={}&permissions=0&scope=bot", user.id);
+    if let Err(why) = msg.author.direct_message(ctx,|ret|{
+        ret.embed(|r|
+            r.description(&link).color((0,255,0))
+        );
+        ret
+    }){
+        println!("Error sending message: {:?}",why);
+    };
     Ok(())
 }
 #[command]
@@ -103,8 +110,7 @@ fn ping(ctx: &mut Context, msg: &Message)-> CommandResult{
             return Ok(());
         }
     };
-    let time = runner.latency.unwrap().as_secs();
-    let rtr = String::from(format!("The shard latency is `{}`",time));
+    let rtr = String::from(format!("The shard latency is `{}`",runner.latency.unwrap().as_secs()));
     let embed = Embed::fake(|e|
         e
             .title("ping")
@@ -135,7 +141,7 @@ fn config(ctx: &mut Context, msg: &Message)-> CommandResult{
 fn spreadsheethelp(ctx: &mut Context, msg: &Message)-> CommandResult{
                 let url = "https://discordapp.com/api/oauth2/authorize?client_id=684150439721304095&permissions=0&scope=bot";
                 let help = format!(">>> Spreadsheet-bot command basics:\n\
-                 -Every command for spreadsheet-bot  starts with the prefix `;s` followed by a cell to reference on the sheet\n\
+                 -Every command for spreadsheet-bot  starts with the prefix `;s` followed first by a space then a cell to reference on the sheet\n\
                  -A reference to a cell is done by the column letter followed by row number (ex: `a1`)\n\
                  -A cell can be set by a cell reference followed by a equal sign ( separated by a space ) (ex: `a1  = 2`)\n\
                  -A cell can be set to a string, instead of a number, when quotes are in place ( ex: `a1 = \"hello world\" `)\n\
@@ -163,9 +169,14 @@ fn about(ctx: &mut Context, msg: &Message)-> CommandResult{
     let response = MessageBuilder::new()
         .push_quote_line("Spreadsheet bot creator: Chilla#4568")
         .push_quote_line("Discord bot API credit: Serenity Team");
-
-    //msg.channel_id.broadcast_typing(ctx);
-    if let Err(why) =msg.channel_id.say(&ctx.http,&response){
+    let embed = Embed::fake(|e|
+        e
+            .title("Spreadsheet bot")
+            .description("use command `;sh` for spreadsheet help")
+            .description(response)
+            .color((0,255,0))
+    );
+    if let Err(why) =msg.channel_id.say(&ctx.http,&embed){
         println!("Error sending message: {:?}",why);
     };
     Ok(())

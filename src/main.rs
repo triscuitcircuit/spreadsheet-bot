@@ -104,19 +104,11 @@ fn get_command_prefix(ctx: &Context) -> String {
 
 fn get_guilds(ctx: &Context) -> Result<usize, serenity::Error> {
     let mut count = 0;
-    let mut last_guild_id = 0;
-    loop {
-        let guilds = ctx.http.get_guilds(&http::GuildPagination::After(last_guild_id.into()), 100)?;
-        let len = guilds.len();
-        count += len;
-        if len < 100 {
-            break;
-        }
-        if let Some(last) = guilds.last() {
-            last_guild_id = *last.id.as_u64();
-        }
+    let string = ctx.clone();
+    let test = &string.cache.read().guilds;
+    for _val in test{
+        count = count + 1;
     }
-
     Ok(count)
 }
 fn status_thread(user_id:UserId, ctx: Arc<Mutex<Context>>){
@@ -129,31 +121,20 @@ fn status_thread(user_id:UserId, ctx: Arc<Mutex<Context>>){
     std::thread::spawn(move||
         loop{
             set_game_presence_help(&ctx.lock().unwrap());
-            std::thread::sleep(std::time::Duration::from_secs(30));
-            let guilds = get_guilds(&ctx.lock().unwrap());
+            std::thread::sleep(std::time::Duration::from_secs(20));
+            let guilds = get_guilds(&ctx.lock().unwrap());//TODO errors out here
             match guilds{
                 Ok(count)=>{
                     set_game_presence(&ctx.lock().unwrap(),&format!("Excelling {} servers",count));
-                }
-                Err(e) => println!("Error while retrieving count {}",e),
+                    std::thread::sleep(std::time::Duration::from_secs(15));
+                },
+                Err(e) => println!("Error while retrieving guild count: {}", e),
             }
 
 
         }
     );
 }
-
-
-fn init_settings() -> Settings {
-    let path = Path::new("config.toml");
-    path.display();
-    let mut f = std::fs::File::open(&path).expect("Could not find the config.toml file. Please copy config.toml.example to config.toml and edit the resulting file");
-    let mut contents = String::new();
-    f.read_to_string(&mut contents)
-        .expect("Could not read configuration file");
-    toml::from_str(&contents).expect("Could not deserialize configuration")
-}
-
 #[check]
 #[name = "Admin"]
 // Whether the check shall be tested in the help-system.
@@ -185,7 +166,7 @@ struct General;
 #[group]
 #[commands(spread,invite,spreadsheethelp)]
 #[description = ":bar_chart: Spreadsheet"]
-struct Spread;
+struct Spreadsheet;
 
 
 fn main() {
@@ -213,8 +194,7 @@ fn main() {
         .help(&SPREADSHEETBOT_HELP)
         .group(&GENERAL_GROUP)
         .group(&OWNERS_GROUP)
-        .group(&SPREAD_GROUP)
-
+        .group(&SPREADSHEET_GROUP)
         );
     let shard_manager = client.shard_manager.clone();
     std::thread::spawn(move||{
