@@ -113,12 +113,13 @@ fn get_guilds(ctx: &Context) -> Result<usize, serenity::Error> {
     Ok(count)
 }
 fn status_thread(user_id:UserId, ctx: Arc<Mutex<Context>>){
-    let dbl_api_key = {
-        let ctx = ctx.lock().unwrap();
-        let data = ctx.data.read();
-        let settings = data.get::<Settings>().unwrap().lock().unwrap();
-        settings.dbl_api_key.clone()
-    };
+    // let dbl_api_key = {
+    //     let ctx = ctx.lock().unwrap();
+    //     let data = ctx.data.read();
+    //     let settings = data.get::<Settings>().unwrap().lock().unwrap();
+    //     settings.dbl_api_key.clone()
+    // };
+    //not needed right now
     std::thread::spawn(move||
         loop{
             set_game_presence_help(&ctx.lock().unwrap());
