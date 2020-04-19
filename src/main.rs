@@ -1,7 +1,5 @@
 mod commands;
-
 #[macro_use]
-
 
 extern crate lazy_static;
 extern crate yard;
@@ -9,12 +7,12 @@ extern crate typemap;
 
 use typemap::Key;
 
-
 use std::{
     {env,thread},
     sync::{Arc,Mutex},
     time::{Duration,SystemTime},
-    collections::{HashMap,HashSet}
+    collections::{HashMap,HashSet},
+    io::Read
 };
 use serenity::{
   client::Client,
@@ -33,7 +31,8 @@ use serde::{Serialize, Deserialize};
 use serenity::prelude::{EventHandler, Context, TypeMapKey};
 use serenity::framework::standard::{StandardFramework, CommandResult, macros::{
     command,
-    group
+    group,
+    check
 }, HelpOptions, Args, CommandGroup, help_commands, CommandOptions, CheckResult, DispatchError};
 use commands::{
     bot_commands::*,
@@ -44,28 +43,13 @@ pub struct Settings {
     pub discord_token: String,
     pub dbl_api_key: Option<String>,
     pub command_prefix: String,
+    pub bot_owners: Vec<serenity::model::prelude::UserId>,
+
 }
 impl Key for Settings {
     type Value = Arc<Mutex<Settings>>;
 }
 
-
-
-#[group]
-#[commands(servers)]
-#[checks(Admin)]
-#[description = ":star: Administrator"]
-struct Owners;
-
-#[group]
-#[commands(ping,about)]
-#[description = ":clipboard: About"]
-struct General;
-
-#[group]
-#[commands(spread,invite)]
-#[description = ":bar_chart: Spreadsheet"]
-struct Spread;
 
 struct CommandCounter;
 impl TypeMapKey for CommandCounter{
@@ -75,16 +59,12 @@ impl TypeMapKey for CommandCounter{
 struct Handler;
 impl EventHandler for Handler {
     fn ready(&self,ctx:Context,ready: Ready){
+        set_game_presence_help(&ctx);
         let ctx = Arc::new(Mutex::new(ctx));
-
         if let Some(shard) = ready.shard {
-            // Note that array index 0 is 0-indexed, while index 1 is 1-indexed.
-            //
-            // This may seem unintuitive, but it models Discord's behaviour.
             match shard[0] {
                 0 => {
                     println!("Connected as {}", ready.user.name);
-                    //info!("Open this link in a web browser to invite {} to a Discord server:\r\nhttps://discordapp.com/oauth2/authorize?client_id={}&scope=bot&permissions=378944", ready.user.name, ready.user.id);
                 },
                 1 => {
                     println!("{}","thread active");
@@ -103,32 +83,6 @@ impl EventHandler for Handler {
     fn resume(&self,_:Context,_:ResumedEvent){
         println!("Resumed");
     }
-    // fn message(&self, ctx: Context, msg: Message) {
-    //     if (msg.content.starts_with(";")|| msg.content.ends_with(";")) && msg.content.len() > 1 {
-    //         let input = &msg.content.replace(";","");
-    //         let mut input_arr:Vec<String> = input.splitn(2," ").map(|x| x.to_string()).collect();
-    //         match input_arr[0].to_uppercase().as_ref(){
-    //             "HELP"=>{
-    //                 let url = "https://discordapp.com/api/oauth2/authorize?client_id=684150439721304095&permissions=0&scope=bot";
-    //                 let help = format!(">>> Spreadsheet-bot command basics:\n\
-    //                  -Every command for spreadsheet-bot  starts with the prefix `;` followed by a cell to reference on the sheet\n\
-    //                  -A reference to a cell is done by the column letter followed by row number (ex: `a1`)\n\
-    //                  -A cell can be set by a cell reference followed by a equal sign ( separated by a space ) (ex: `a1  = 2`)\n\
-    //                  -A cell can be set to a string, instead of a number, when quotes are in place ( ex: `a1 = \"hello world\" `)\n\
-    //                  -A cell could also reference other cells by putting a cell reference in the deceleration (ex: `a1 = ( b1 * 2 )` )\n\
-    //                  they can also reference multiple cells\n\n\
-    //                  -Spreadsheet can be printed with `;spread`, `;spreadsheet` ,or `;print`\n\
-    //                  -Spreadsheet can be cleared with the `;clear` command, or combined with a cell ref to clear a cell (ex: `;clear a1`)\n\n\
-    //                  The spreadsheet is the same for every server that it is on and can be changed by anyone\n\
-    //                  Creator: ***Chilla#4568***\n\
-    //                   invite the bot with this link: {}",url);
-    //                 if let Err(why) = msg.author.direct_message(ctx,|ret|{
-    //                     ret.embed(|r|
-    //                         r.description(&help).color((0,255,0))
-    //
-    //                     );
-    //                     ret
-    //                 }){
 }
 fn set_game_presence(ctx: &Context, game_name: &str) {
     let game = serenity::model::gateway::Activity::playing(game_name);
@@ -136,7 +90,7 @@ fn set_game_presence(ctx: &Context, game_name: &str) {
     ctx.set_presence(Some(game), status);
 }
 fn set_game_presence_help(ctx: &Context) {
-    let prefix = get_command_prefix(ctx);
+    let prefix = String::from(";");
     set_game_presence(ctx, &format!("Type {}help to get a list of available commands", prefix));
 }
 fn get_command_prefix(ctx: &Context) -> String {
@@ -186,6 +140,49 @@ fn status_thread(user_id:UserId, ctx: Arc<Mutex<Context>>){
         }
     );
 }
+
+fn init_settings() -> Settings {
+    let mut f = std::fs::File::open("config.toml").expect("Could not find the config.toml file. Please copy config.toml.example to config.toml and edit the resulting file");
+    let mut contents = String::new();
+    f.read_to_string(&mut contents)
+        .expect("Could not read configuration file");
+    toml::from_str(&contents).expect("Could not deserialize configuration")
+}
+
+#[check]
+#[name = "Admin"]
+// Whether the check shall be tested in the help-system.
+#[check_in_help(true)]
+// Whether the check shall be displayed in the help-system.
+#[display_in_help(true)]
+fn admin_check(ctx: &mut Context, msg: &Message, _: &mut Args, _: &CommandOptions) -> CheckResult {
+    if let Some(member) = msg.member(&ctx.cache) {
+        if let Ok(permissions) = member.permissions(&ctx.cache) {
+            return permissions.administrator().into();
+        }
+    }
+
+    false.into()
+}
+
+
+#[group]
+#[commands(servers)]
+#[checks(Admin)]
+#[description = ":star: Administrator"]
+struct Owners;
+
+#[group]
+#[commands(ping,about)]
+#[description = ":clipboard: About"]
+struct General;
+
+#[group]
+#[commands(spread,invite,spreadsheethelp)]
+#[description = ":bar_chart: Spreadsheet"]
+struct Spread;
+
+
 fn main() {
 
     let token = env::var("DISCORD_TOKEN")
@@ -204,16 +201,39 @@ fn main() {
         Err(why)=> panic!("Couldn't get application info: {:?}", why),
 
     };
+    let settings = init_settings();
+    {
+        let mut data = client.data.write();
+        data.insert::<Settings>(Arc::new(Mutex::new(settings)));
+    }
+
+    let settings = init_settings();
     client.with_framework(StandardFramework::new()
         .configure(|c| c
             .owners(owners)
             .prefix(";"))
+        .help(&SPREADSHEETBOT_HELP)
         .group(&GENERAL_GROUP)
         .group(&OWNERS_GROUP)
         .group(&SPREAD_GROUP)
-        .help(&SPREADSHEETBOT_HELP)
 
         );
+    let shard_manager = client.shard_manager.clone();
+    std::thread::spawn(move||{
+        std::thread::sleep(std::time::Duration::from_secs(30));
+
+        let lock = shard_manager.lock();
+        let shard_runners = lock.runners.lock();
+
+        for(id,runner) in shard_runners.iter(){
+            println!(
+                "Shard ID {} is {} with a latency of {:?}",
+                id,
+                runner.stage,
+                runner.latency,
+            );
+        }
+    });
 
     if let Err(why) = client.start() {
         println!("Client error: {:?}", why);

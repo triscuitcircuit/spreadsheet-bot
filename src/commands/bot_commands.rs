@@ -130,6 +130,34 @@ fn config(ctx: &mut Context, msg: &Message)-> CommandResult{
     Ok(())
 }
 #[command]
+#[description = "A helpful command that formulates instructions for operations of the spreadsheet"]
+#[aliases("sh")]
+fn spreadsheethelp(ctx: &mut Context, msg: &Message)-> CommandResult{
+                let url = "https://discordapp.com/api/oauth2/authorize?client_id=684150439721304095&permissions=0&scope=bot";
+                let help = format!(">>> Spreadsheet-bot command basics:\n\
+                 -Every command for spreadsheet-bot  starts with the prefix `;` followed by a cell to reference on the sheet\n\
+                 -A reference to a cell is done by the column letter followed by row number (ex: `a1`)\n\
+                 -A cell can be set by a cell reference followed by a equal sign ( separated by a space ) (ex: `a1  = 2`)\n\
+                 -A cell can be set to a string, instead of a number, when quotes are in place ( ex: `a1 = \"hello world\" `)\n\
+                 -A cell could also reference other cells by putting a cell reference in the deceleration (ex: `a1 = ( b1 * 2 )` )\n\
+                 they can also reference multiple cells\n\n\
+                 -Spreadsheet can be printed with `;spread`, `;spreadsheet` ,or `;print`\n\
+                 -Spreadsheet can be cleared with the `;clear` command, or combined with a cell ref to clear a cell (ex: `;clear a1`)\n\n\
+                 The spreadsheet is the same for every server that it is on and can be changed by anyone\n\
+                 Creator: ***Chilla#4568***\n\
+                  invite the bot with this link: {}",url);
+                if let Err(why) = msg.author.direct_message(ctx,|ret|{
+        ret.embed(|r|
+            r.description(&help).color((0,255,0))
+
+        );
+        ret
+    }){
+        println!("Error sending message: {:?}",why);
+    };
+    Ok(())
+}
+#[command]
 #[description = "Information about lord Spreadsheetbot"]
 fn about(ctx: &mut Context, msg: &Message)-> CommandResult{
     let response = MessageBuilder::new()
