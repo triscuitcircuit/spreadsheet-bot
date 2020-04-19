@@ -148,8 +148,8 @@ fn spreadsheethelp(ctx: &mut Context, msg: &Message)-> CommandResult{
                  -A cell can be set to a string, instead of a number, when quotes are in place ( ex: `a1 = \"hello world\" `)\n\
                  -A cell could also reference other cells by putting a cell reference in the deceleration (ex: `a1 = ( b1 * 2 )` )\n\
                  they can also reference multiple cells\n\n\
-                 -Spreadsheet can be printed with `;spread`, `;spreadsheet` ,or `;print`\n\
-                 -Spreadsheet can be cleared with the `;clear` command, or combined with a cell ref to clear a cell (ex: `;clear a1`)\n\n\
+                 -Spreadsheet can be printed with `;spread`, `;s spreadsheet` ,or `;s print`\n\
+                 -Spreadsheet can be cleared with the `;s clear` command, or combined with a cell ref to clear a cell (ex: `;s clear a1`)\n\n\
                  The spreadsheet is the same for every server that it is on and can be changed by anyone\n\
                  Creator: ***Chilla#4568***\n\
                   invite the bot with this link: {}",url);
