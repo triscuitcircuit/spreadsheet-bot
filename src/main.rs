@@ -68,7 +68,6 @@ impl EventHandler for Handler {
                 0 => {
 
                     println!("Connected as {}", ready.user.name);
-                    status_thread(ready.user.id, ctx)
                 },
                 1 => {
                     println!("{}","thread active");
@@ -216,11 +215,9 @@ fn main() {
             }
         }
     });
-
-    if let Err(why) = client.start() {
-        println!("Client error: {:?}", why);
-    }
     if let Err(why) = client.start_shards(2) {
         println!("Client error: {:?}", why);
     }
+
+    let http_client = Http::new_with_token(&token);
 }
