@@ -1,7 +1,7 @@
 //use "*" to configure bot
 use serenity::{
     prelude::*,
-    model::{prelude::*,channel::{Message,Embed}},
+    model::{prelude::{UserId,Permissions},channel::{Message,Embed}},
     framework::standard::{
         Args,CommandResult,
         CommandOptions,CommandGroup, DispatchError,
@@ -15,6 +15,7 @@ use std::{collections::{HashSet},
           env,fmt::write,
           sync::Arc};
 use crate::commands::spreadsheet;
+use crate::{models, Bans, DbPool};
 
 pub(crate) struct ShardManagerContainer;
 impl TypeMapKey for ShardManagerContainer{
@@ -23,6 +24,7 @@ impl TypeMapKey for ShardManagerContainer{
 
 #[command]
 #[owners_only]
+#[description ="get a list of servers that spreadsheet bot is in"]
 fn servers(ctx: &mut Context,msg:&Message)->CommandResult{
     let string = ctx.clone();
     let input = &msg.content;
@@ -72,9 +74,9 @@ fn servers(ctx: &mut Context,msg:&Message)->CommandResult{
 #[description = "Get a copy of the spreadsheet .csv export"]
 fn export(ctx: &mut Context, msg: &Message) -> CommandResult{
     if let Err(why) = msg.author.direct_message(ctx,|ret|{
+        ret.add_file("export.csv");
         ret.embed(|r|
             r.description("Spreadsheet export: ")
-                .attachment("export.csv").color((0,255,0))
         );
         ret
     }){
@@ -93,11 +95,10 @@ fn invite(ctx: &mut Context, msg: &Message) -> CommandResult {
             return Ok(());
         }
     };
-    let link = format!("\nhttps://discordapp.com/api/oauth2/authorize?client_id={}&permissions=0&scope=bot", user.id);
+    let link = format!("Share the spreadsheet chaos with this link:\nhttps://discordapp.com/api/oauth2/authorize?client_id={}&permissions=0&scope=bot", user.id);
     if let Err(why) = msg.author.direct_message(ctx,|ret|{
         ret.embed(|r|
-            r.description("Share the spreadsheet chaos with this link:")
-                .description(&link).color((0,255,0))
+            r.description(&link).color((0,255,0))
         );
         ret
     }){
@@ -147,6 +148,7 @@ fn inter_roles(ctx: &mut Context, msg: &Message)-> CommandResult{
 }
 #[command]
 #[owners_only]
+
 fn config(ctx: &mut Context, msg: &Message)-> CommandResult{
     //TODO
     Ok(())
@@ -202,6 +204,7 @@ fn about(ctx: &mut Context, msg: &Message)-> CommandResult{
 }
 #[command]
 #[description = "interact with the spreadsheet"]
+#[example =";s a1 = 21"]
 #[aliases("s")]
 fn spread(ctx: &mut Context, msg: &Message)-> CommandResult{
     let mut input: String = String::from("");

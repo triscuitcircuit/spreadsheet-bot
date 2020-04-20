@@ -1,10 +1,13 @@
+#[macro_use]extern crate lazy_static;
+#[macro_use]extern crate yard;
+#[macro_use]extern crate csv;
+#[macro_use]extern crate diesel;
+use typemap::Key;
+
+//pub mod models;
+
 mod commands;
-#[macro_use]
-
-extern crate lazy_static;
-extern crate yard;
-extern crate csv;
-
+pub mod models;
 use std::{
     {env,thread},
     sync::{Arc,Mutex},
@@ -16,7 +19,7 @@ use serenity::{
   client::Client,
   CacheAndHttp,
   http::{self,client::Http,routing::RouteInfo::CreateMessage},
-  client::validate_token,
+  client::{validate_token,bridge::gateway::ShardManager},
   model::{gateway::{Activity, Ready},
           guild::{Guild, Member},id::UserId,
           channel::{Message, Embed}
@@ -37,12 +40,32 @@ use commands::{
 };
 use serenity::model::event::ResumedEvent;
 use std::path::Path;
-
+use diesel::{
+    SqliteConnection,
+    r2d2::{ ConnectionManager, Pool },
+};
 
 struct CommandCounter;
 impl TypeMapKey for CommandCounter{
     type Value = HashMap<String,u64>;
 }
+struct ShardManagerContainer;
+
+impl Key for ShardManagerContainer {
+    type Value = Arc<serenity::prelude::Mutex<ShardManager>>;
+}
+
+pub type DbPoolType = Arc<Pool<ConnectionManager<SqliteConnection>>>;
+pub struct DbPool(DbPoolType);
+
+impl Key for DbPool{
+    type Value = DbPoolType;
+}
+struct Bans;
+impl Key for Bans{
+    type Value = HashMap<serenity::model::prelude::UserId,Vec<models>>;
+}
+
 
 struct Handler;
 impl EventHandler for Handler {
@@ -122,7 +145,7 @@ fn admin_check(ctx: &mut Context, msg: &Message, _: &mut Args, _: &CommandOption
 
 
 #[group]
-#[commands()]
+#[commands(servers,config,inter_roles)]
 #[checks(Admin)]
 #[description = ":star: Administrator"]
 struct Owners;
@@ -153,7 +176,7 @@ fn main() {
             set.insert(info.owner.id);
             set
         },
-        Err(why)=> panic!("Couldn't get application info: {:?}", why),
+        Err(why)=> println!("Couldn't get application info: {:?}", why),
 
     };
     client.with_framework(StandardFramework::new()
@@ -164,7 +187,19 @@ fn main() {
         .group(&GENERAL_GROUP)
         .group(&OWNERS_GROUP)
         .group(&SPREADSHEET_GROUP)
-        );
+        .on_dispatch_error(|ctx,msg,error|{
+         match error{
+             DispatchError::Ratelimited(seconds)=>{
+                 msg.reply(ctx,&format!("Try command again in {} seconds",seconds)); },
+             DispatchError::OnlyForOwners | DispatchError::LackingPermissions(_)|DispatchError::LackingRole|DispatchError::BlockedUser =>{
+               msg.reply(ctx,"you're not allowed to do this");
+             },
+             DispatchError::BlockedGuild=>{
+                 msg.reply(ctx,"not available on the server");
+             }
+             _ => {}
+         }
+        }));
     let shard_manager = client.shard_manager.clone();
     std::thread::spawn(move||{
         loop {

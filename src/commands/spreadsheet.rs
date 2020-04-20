@@ -1,17 +1,16 @@
 use yard::{parser, evaluator};
-use std::borrow::Borrow;
-use std::fs;
-use std::io::{BufReader, Empty, Read, stdout};
-use std::path::Path;
+use std::{
+    error::Error,
+    io::{self,{BufReader,Empty,Read,stdout},Write},
+    borrow::Borrow,
+    fs::{self,File},
+    path::Path,
+    sync::{Arc, Mutex},
+    num::ParseIntError
+};
+use serde_json::{self,value::Value::Array};
 use serde::{Serialize, Deserialize};
-use serde_json;
-use std::fs::File;
-use std::sync::{Arc, Mutex};
-use serde_json::value::Value::Array;
 //use std::sync::mpsc::{channel, Sender};
-use std::num::ParseIntError;
-use std::io::Write;
-use std::error::Error;
 use csv::Writer;
 
 
@@ -265,17 +264,18 @@ fn process_command(input:String) -> Result<String,SpreadsheetError>{
             Ok(String::from("Loaded sheet"))
         }
         "EXPORT"=>{
-            if let mut wtr = Writer::from_path("export.csv"){
-                let mut key = wtr.unwrap();
-                let db = GRID.lock().map_err(|_| SpreadsheetError::MutexError)?;
-                for r in 0..db.len(){
-                    let mut arr = vec![String::new()];
-                    for c in 0..db[r].len(){
-                        arr.insert(c,db[r as usize][c as usize].cell_text());
-                    }
-                    key.write_record(&arr);
+            let wtr = Writer::from_path("export.csv");
+            let mut key = wtr.unwrap();
+            let db = GRID.lock().map_err(|_| SpreadsheetError::MutexError)?;
+            let a = db.clone();
+            for r in 0..a.len(){
+                let mut arr = vec![String::new()];
+                for c in 0..a[r].len(){
+                    arr.insert(c,a[r as usize][c as usize].cell_text());
                 }
-            };
+                key.write_record(&arr);
+            }
+            std::mem::drop(a);
             Ok(String::from("Spreadsheet exported as *export.csv*, use command *export* to get a copy"))
         }
         "SAVE"=>{
