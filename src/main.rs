@@ -90,12 +90,12 @@ fn status_thread(user_id:UserId, ctx: Arc<Mutex<Context>>){
     std::thread::spawn(move||
         loop{
             set_game_presence_help(&ctx.lock().unwrap());
-            std::thread::sleep(std::time::Duration::from_secs(30));
+            std::thread::sleep(std::time::Duration::from_secs(15));
             let guilds = get_guilds(&ctx.lock().unwrap());//TODO errors out here
             match guilds{
                 Ok(count)=>{
                     set_game_presence(&ctx.lock().unwrap(),&format!("Excelling {} servers",count));
-                    std::thread::sleep(std::time::Duration::from_secs(15));
+                    std::thread::sleep(std::time::Duration::from_secs(18));
                 },
                 Err(e) => println!("Error while retrieving guild count: {}", e),
             }
