@@ -122,7 +122,7 @@ fn admin_check(ctx: &mut Context, msg: &Message, _: &mut Args, _: &CommandOption
 
 
 #[group]
-#[commands(servers)]
+#[commands()]
 #[checks(Admin)]
 #[description = ":star: Administrator"]
 struct Owners;
