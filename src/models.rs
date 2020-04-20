@@ -1,10 +1,11 @@
-use chrono::prelude::NaiveDateTime;
-use diesel::prelude::*;
-use serenity::model::prelude::{GuildId, UserId};
-use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::HashMap;
+use std::collections::hash_map::Entry::{ Occupied, Vacant };
 
-use crate::{schema, DbPoolType};
+use chrono::prelude::NaiveDateTime;
+use serenity::model::prelude::{ UserId, GuildId };
+use diesel::prelude::*;
+
+use crate::{ schema, DbPoolType };
 
 #[derive(Queryable)]
 pub struct User {
@@ -60,7 +61,7 @@ impl User {
                 ).execute(&db);
                 match r {
                     Ok(_) => {
-                        user.order(self.id.desc())
+                        user.order(id.desc())
                             .first::<User>(&db)
                             .unwrap()
                     },
@@ -90,7 +91,7 @@ impl User {
         )).execute(&db);
         match r {
             Ok(_) => {
-                ban.order(self.id.desc())
+                ban.order(id.desc())
                     .first::<Ban>(&db)
                     .unwrap()
             },
@@ -110,7 +111,8 @@ impl User {
         } else {
             filter.sql("")
         };
-        let ban_id: Option<i32> = ban.select(self.id).filter(&filter).first(&db).ok();
+
+        let ban_id: Option<i32> = ban.select(id).filter(&filter).first(&db).ok();
 
         let _ = diesel::delete(ban)
             .filter(filter)

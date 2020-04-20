@@ -4,10 +4,11 @@
 #[macro_use]extern crate diesel;
 use typemap::Key;
 
-//pub mod models;
+use commands::lock::*;
 
 mod commands;
 pub mod models;
+pub mod schema;
 use std::{
     {env,thread},
     sync::{Arc,Mutex},
@@ -63,7 +64,7 @@ impl Key for DbPool{
 }
 struct Bans;
 impl Key for Bans{
-    type Value = HashMap<serenity::model::prelude::UserId,Vec<models>>;
+    type Value = HashMap<serenity::model::prelude::UserId,Vec<models::Ban>>;
 }
 
 
@@ -145,7 +146,7 @@ fn admin_check(ctx: &mut Context, msg: &Message, _: &mut Args, _: &CommandOption
 
 
 #[group]
-#[commands(servers,config,inter_roles)]
+#[commands(servers,config,lock)]
 #[checks(Admin)]
 #[description = ":star: Administrator"]
 struct Owners;
@@ -176,7 +177,7 @@ fn main() {
             set.insert(info.owner.id);
             set
         },
-        Err(why)=> println!("Couldn't get application info: {:?}", why),
+        Err(why)=> panic!("Couldn't get application info: {:?}", why),
 
     };
     client.with_framework(StandardFramework::new()

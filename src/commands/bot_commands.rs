@@ -142,13 +142,12 @@ fn ping(ctx: &mut Context, msg: &Message)-> CommandResult{
 }
 #[command]
 #[owners_only]
-fn inter_roles(ctx: &mut Context, msg: &Message)-> CommandResult{
+fn interroles(ctx: &mut Context, msg: &Message)-> CommandResult{
     //TODO
     Ok(())
 }
 #[command]
 #[owners_only]
-
 fn config(ctx: &mut Context, msg: &Message)-> CommandResult{
     //TODO
     Ok(())
