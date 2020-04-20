@@ -12,6 +12,7 @@ use serde_json::value::Value::Array;
 use std::num::ParseIntError;
 use std::io::Write;
 use std::error::Error;
+use csv::Writer;
 
 
 #[derive(Debug)]
@@ -264,7 +265,18 @@ fn process_command(input:String) -> Result<String,SpreadsheetError>{
             Ok(String::from("Loaded sheet"))
         }
         "EXPORT"=>{
-            Ok(String::from("Export command entered"))
+            if let mut wtr = Writer::from_path("export.csv"){
+                let mut key = wtr.unwrap();
+                let db = GRID.lock().map_err(|_| SpreadsheetError::MutexError)?;
+                for r in 0..db.len(){
+                    let mut arr = vec![String::new()];
+                    for c in 0..db[r].len(){
+                        arr.insert(c,db[r as usize][c as usize].cell_text());
+                    }
+                    key.write_record(&arr);
+                }
+            };
+            Ok(String::from("Spreadsheet exported as *export.csv*, use command *export* to get a copy"))
         }
         "SAVE"=>{
             let db = GRID.lock().map_err(|_| SpreadsheetError::MutexError)?;

@@ -3,9 +3,7 @@ mod commands;
 
 extern crate lazy_static;
 extern crate yard;
-extern crate typemap;
-
-use typemap::Key;
+extern crate csv;
 
 use std::{
     {env,thread},
@@ -39,18 +37,6 @@ use commands::{
 };
 use serenity::model::event::ResumedEvent;
 use std::path::Path;
-
-#[derive(Default, Deserialize, Clone)]
-pub struct Settings {
-    pub discord_token: String,
-    pub dbl_api_key: Option<String>,
-    pub command_prefix: String,
-    pub bot_owners: Vec<serenity::model::prelude::UserId>,
-
-}
-impl Key for Settings {
-    type Value = Arc<Mutex<Settings>>;
-}
 
 
 struct CommandCounter;
@@ -96,30 +82,11 @@ fn set_game_presence_help(ctx: &Context) {
     let prefix = String::from(";");
     set_game_presence(ctx, &format!("Type {}sh for spreadsheet help", prefix));
 }
-fn get_command_prefix(ctx: &Context) -> String {
-    let data = ctx.data.read();
-    let settings = data.get::<Settings>().unwrap().lock().unwrap();
-    settings.command_prefix.clone()
-}
-
 
 fn get_guilds(ctx: &Context) -> Result<usize, serenity::Error> {
-    let mut count = 0;
-    let string = ctx.clone();
-    let test = &string.cache.read().guilds;
-    for _val in test{
-        count = count + 1;
-    }
-    Ok(count)
+    Ok(*&ctx.cache.read().guilds.len().clone() as usize)
 }
 fn status_thread(user_id:UserId, ctx: Arc<Mutex<Context>>){
-    // let dbl_api_key = {
-    //     let ctx = ctx.lock().unwrap();
-    //     let data = ctx.data.read();
-    //     let settings = data.get::<Settings>().unwrap().lock().unwrap();
-    //     settings.dbl_api_key.clone()
-    // };
-    //not needed right now
     std::thread::spawn(move||
         loop{
             set_game_presence_help(&ctx.lock().unwrap());

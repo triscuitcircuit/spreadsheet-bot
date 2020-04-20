@@ -69,6 +69,21 @@ fn servers(ctx: &mut Context,msg:&Message)->CommandResult{
     Ok(())
 }
 #[command]
+#[description = "Get a copy of the spreadsheet .csv export"]
+fn export(ctx: &mut Context, msg: &Message) -> CommandResult{
+    if let Err(why) = msg.author.direct_message(ctx,|ret|{
+        ret.embed(|r|
+            r.description("Spreadsheet export: ")
+                .attachment("export.csv").color((0,255,0))
+        );
+        ret
+    }){
+        println!("Error sending message: {:?}",why);
+    };
+    Ok(())
+}
+
+#[command]
 #[description = "Get a link for the bot to spread more joys of spreadsheets"]
 fn invite(ctx: &mut Context, msg: &Message) -> CommandResult {
     let user = match ctx.http.get_current_user() {
