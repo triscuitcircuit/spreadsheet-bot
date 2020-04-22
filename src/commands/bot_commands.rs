@@ -15,7 +15,10 @@ use std::{collections::{HashSet},
           env,fmt::write,
           sync::Arc};
 use crate::commands::spreadsheet;
-use crate::{models, Bans, DbPool};
+use crate::{models, Bans, DbPool, USERS};
+use serenity::http::AttachmentType;
+use std::path::Path;
+use std::io::Error;
 
 pub(crate) struct ShardManagerContainer;
 impl TypeMapKey for ShardManagerContainer{
@@ -63,10 +66,6 @@ fn servers(ctx: &mut Context,msg:&Message)->CommandResult{
             trt = format!("{}\n> {}", trt, val.1.read().name);
         }
         println!("{}",trt);
-
-        if let Err(why) =  msg.reply(ctx,format!("{}",trt)){
-            println!("Error sending message: {:?}",why);
-        };
     }
     Ok(())
 }
@@ -128,14 +127,9 @@ fn ping(ctx: &mut Context, msg: &Message)-> CommandResult{
         }
     };
     let rtr = String::from(format!("> The shard latency is `{}`",runner.latency.unwrap().as_secs()));
-    let embed = Embed::fake(|e|
-        e
-            .title("ping")
-            .description(&rtr)
-    );
 
     if let Err(why) = msg.channel_id.say(ctx.clone(),rtr){
-        println!("{}","An error happened")
+        println!("error happened {}",why);
     }
     Ok(())
 
@@ -165,9 +159,13 @@ fn spreadsheethelp(ctx: &mut Context, msg: &Message)-> CommandResult{
                  -A cell could also reference other cells by putting a cell reference in the deceleration (ex: `a1 = ( b1 * 2 )` )\n\
                  they can also reference multiple cells\n\n\
                  -Spreadsheet can be printed with `;spread`, `;s spreadsheet` ,or `;s print`\n\
-                 -Spreadsheet can be cleared with the `;s clear` command, or combined with a cell ref to clear a cell (ex: `;s clear a1`)\n\n\
+                 -Spreadsheet can be cleared with the `;s clear` command, or combined with a cell ref to clear a cell (ex: `;s clear a1`)\n\
+                 -Spreadsheet can be saved with the command `;s save` and loaded with `;s load` for those who want to save and load data\n\
+                 -The spreadsheet can also be exported by first using the command `;s export` and then using the `;export` command\n\n\
                  The spreadsheet is the same for every server that it is on and can be changed by anyone\n\
+                 (though this will change in a future update)\n\
                  Creator: ***Chilla#4568***\n\
+                 (feel free to dm me with any questions, comments or concerns)\n\
                   invite the bot with this link: {}",url);
                 if let Err(why) = msg.author.direct_message(ctx,|ret|{
         ret.embed(|r|
@@ -183,22 +181,25 @@ fn spreadsheethelp(ctx: &mut Context, msg: &Message)-> CommandResult{
 #[command]
 #[description = "Information about lord Spreadsheetbot"]
 fn about(ctx: &mut Context, msg: &Message)-> CommandResult{
-    let response = MessageBuilder::new()
-        .push_quote_line("Spreadsheet bot")
-        .push_quote_line("use command ;sh for spreadsheet help")
-        .push_quote_line("Spreadsheet bot creator: Chilla#4568")
-        .push_quote_line("Discord bot API credit: Serenity Team");
-
-    // let embed = Embed::fake(|e|
-    //     e
-    //         .title("Spreadsheet bot")
-    //         .description("use command `;sh` for spreadsheet help")
-    //         .description(response)
-    //         .color((0,255,0))
-    // );
-    if let Err(why) =msg.channel_id.say(&ctx.http,&response){
-        println!("Error sending message: {:?}",why);
-    };
+    let msg = msg.channel_id.send_message(&ctx.http,|m|{
+        m.embed(|e|{
+            e.title("Spreadsheet bot");
+            e.image("attachment://spreadsheet_bot.png");
+            e.description("Spreadsheet bot creator: Chilla#4568");
+            e.description("Discord bot API Creadit: Serenity Team");
+            e.footer(|f|{
+                f.text("Use command `;sh` for spreadsheet help");
+                f
+            });
+            e.color((0,255,0));
+            e
+        });
+        m.add_file(AttachmentType::Path(Path::new("./spreadsheet_bot.png")));
+        m
+    });
+    if let Err(why) = msg {
+        println!("Error sending message {:?}",why);
+    }
     Ok(())
 }
 #[command]
@@ -216,9 +217,25 @@ fn spread(ctx: &mut Context, msg: &Message)-> CommandResult{
     println!("username:{},command:{}",msg.author.name,msg.content);
     println!("user id:{}, username:{}, spreadsheet \n{}",msg.author.id,msg.author.name,l);
     l = format!("\n```{}```",l);
-    if let Err(why) =  msg.reply(ctx,l ){
-        println!("Error sending message: {:?}",why);
-    };
+    let data = &msg.author.name;
+    let mut db = USERS.lock().map_err(|_|Error::from_raw_os_error(2))?;//May cause error
+    let reply = msg.channel_id.send_message(&ctx.http, |m|{
+        m.embed(|e|{
+            e.title("Current Spreadsheet");
+            e.description(&l);
+            e.color((0,255,0));
+            e.footer(|f|{
+                f.text(format!("Last edited by:{}",db[0]));
+               f
+            });
+            e
+        });
+        db[0] = data.to_string();
+        m
+    });
+    if let Err(e) = reply{
+        println!("error sending message {}",e);
+    }
     Ok(())
 }
 #[help]

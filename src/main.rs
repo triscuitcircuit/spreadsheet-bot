@@ -51,10 +51,13 @@ impl TypeMapKey for CommandCounter{
     type Value = HashMap<String,u64>;
 }
 struct ShardManagerContainer;
-
 impl Key for ShardManagerContainer {
     type Value = Arc<serenity::prelude::Mutex<ShardManager>>;
 }
+lazy_static! {
+    pub static ref USERS: Mutex<Vec<String>> = Mutex::new(vec!["Nobody".to_string();1]);
+}
+
 
 pub type DbPoolType = Arc<Pool<ConnectionManager<SqliteConnection>>>;
 pub struct DbPool(DbPoolType);
@@ -191,12 +194,19 @@ fn main() {
         .on_dispatch_error(|ctx,msg,error|{
          match error{
              DispatchError::Ratelimited(seconds)=>{
-                 msg.reply(ctx,&format!("Try command again in {} seconds",seconds)); },
+                 if let Err(e) = msg.reply(ctx,&format!("Try command again in {} seconds",seconds)){
+                     println!("Error trying to send command {}",e);
+                 };
+             },
              DispatchError::OnlyForOwners | DispatchError::LackingPermissions(_)|DispatchError::LackingRole|DispatchError::BlockedUser =>{
-               msg.reply(ctx,"you're not allowed to do this");
+               if let Err(e) = msg.reply(ctx,"you're not allowed to do this"){
+                 println!("Error sending message {}",e);
+               };
              },
              DispatchError::BlockedGuild=>{
-                 msg.reply(ctx,"not available on the server");
+                 if let Err(e) = msg.reply(ctx,"not available on the server"){
+                     println!("Error sending message {}",e);
+                 }
              }
              _ => {}
          }
@@ -204,7 +214,7 @@ fn main() {
     let shard_manager = client.shard_manager.clone();
     std::thread::spawn(move||{
         loop {
-            std::thread::sleep(std::time::Duration::from_secs(30));
+            std::thread::sleep(std::time::Duration::from_secs(600));
 
             let lock = shard_manager.lock();
             let shard_runners = lock.runners.lock();

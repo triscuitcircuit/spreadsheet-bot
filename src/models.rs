@@ -21,24 +21,9 @@ pub struct Ban {
     end_epoch: Option<String>,
 }
 
-#[derive(Queryable)]
-pub struct LangStat {
-    id:                i32,
-    lang_name:         String,
-    snippets_executed: i32,
-}
-
-#[derive(Queryable)]
-#[allow(dead_code)]
-pub struct Snippet {
-    id:       i32,
-    user:     i32,
-    code:     String,
-    guild:    Option<String>,
-    run_time: String,
-}
 
 impl User {
+
     pub fn get_id(&self) -> i32 {
         self.id
     }
