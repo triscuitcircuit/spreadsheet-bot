@@ -45,6 +45,7 @@ use diesel::{
     SqliteConnection,
     r2d2::{ ConnectionManager, Pool },
 };
+use std::borrow::BorrowMut;
 
 struct CommandCounter;
 impl TypeMapKey for CommandCounter{
@@ -54,8 +55,13 @@ struct ShardManagerContainer;
 impl Key for ShardManagerContainer {
     type Value = Arc<serenity::prelude::Mutex<ShardManager>>;
 }
+
+pub enum Usernum{
+    Userdata{username: String,url: String}
+}
+
 lazy_static! {
-    pub static ref USERS: Mutex<Vec<String>> = Mutex::new(vec!["Nobody".to_string();1]);
+    pub static ref USERS: Mutex<Vec<String>> = Mutex::new(vec!["Nobody".to_string();2]);
 }
 
 
@@ -73,7 +79,9 @@ impl Key for Bans{
 
 struct Handler;
 impl EventHandler for Handler {
+
     fn ready(&self,ctx:Context,ready: Ready){
+        let mut  a = Usernum::Userdata {username: "".to_string(),url:"".to_string()};
         //set_game_presence_help(&ctx);
         let ctx = Arc::new(Mutex::new(ctx));
         if let Some(shard) = ready.shard {
