@@ -151,7 +151,7 @@ fn config(ctx: &mut Context, msg: &Message)-> CommandResult{
 #[aliases("sh")]
 fn spreadsheethelp(ctx: &mut Context, msg: &Message)-> CommandResult{
                 let url = "https://discordapp.com/api/oauth2/authorize?client_id=684150439721304095&permissions=0&scope=bot";
-                let help = format!(">>> Spreadsheet-bot command basics:\n\
+                let help = format!(">>>
                  -Every command for spreadsheet-bot  starts with the prefix `;s` followed first by a space then a cell to reference on the sheet\n\
                  -A reference to a cell is done by the column letter followed by row number (ex: `a1`)\n\
                  -A cell can be set by a cell reference followed by a equal sign ( separated by a space ) (ex: `a1  = 2`)\n\
@@ -169,8 +169,7 @@ fn spreadsheethelp(ctx: &mut Context, msg: &Message)-> CommandResult{
                   invite the bot with this link: {}",url);
                 if let Err(why) = msg.author.direct_message(ctx,|ret|{
         ret.embed(|r|
-            r.description(&help).color((0,255,0))
-
+            r.title("Spreadsheet-bot command basics:").description(&help).color((0,255,0))
         );
         ret
     }){
@@ -185,8 +184,7 @@ fn about(ctx: &mut Context, msg: &Message)-> CommandResult{
         m.embed(|e|{
             e.title("Spreadsheet bot");
             e.image("attachment://spreadsheet_bot.png");
-            e.description("Spreadsheet bot creator: Chilla#4568");
-            e.description("Discord bot API Creadit: Serenity Team");
+            e.description("Spreadsheet bot creator: Chilla#4568\nDiscord bot API Creadit: Serenity Team");
             e.footer(|f|{
                 f.text("Use command `;sh` for spreadsheet help");
                 f
@@ -219,13 +217,16 @@ fn spread(ctx: &mut Context, msg: &Message)-> CommandResult{
     l = format!("\n```{}```",l);
     let data = &msg.author.name;
     let mut db = USERS.lock().map_err(|_|Error::from_raw_os_error(2))?;//May cause error
+    let user_url = match msg.author.avatar_url().clone(){
+        Some(e) => e,
+        None => "https://discordapp.com/assets/dd4dbc0016779df1378e7812eabaa04d.png".to_string(),
+    };
     let reply = msg.channel_id.send_message(&ctx.http, |m|{
+        m.content(&l);
         m.embed(|e|{
-            e.title("Current Spreadsheet");
-            e.description(&l);
-            e.color((0,255,0));
             e.footer(|f|{
-                f.text(format!("Last edited by:{}",db[0]));
+                f.icon_url(user_url);
+                f.text(format!("Last command by:{}",db[0]));
                f
             });
             e
