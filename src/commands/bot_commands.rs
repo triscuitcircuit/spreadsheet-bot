@@ -217,14 +217,17 @@ fn spread(ctx: &mut Context, msg: &Message)-> CommandResult{
     l = format!("\n```{}```",l);
     let data = &msg.author.name;
     let mut db = USERS.lock().map_err(|_|Error::from_raw_os_error(2))?;//May cause error
-    let user_url = match msg.author.avatar_url().clone(){
-        Some(e) => e,
-        None => "https://discordapp.com/assets/dd4dbc0016779df1378e7812eabaa04d.png".to_string(),
+
+    db[1] = match db[1].as_ref(){
+        "Nobody"=>{"https://discordapp.com/assets/dd4dbc0016779df1378e7812eabaa04d.png".to_string()},
+        _ => {db[1].clone()} ,
     };
+    let user_url = db[1].clone();
     let reply = msg.channel_id.send_message(&ctx.http, |m|{
         m.content(&l);
         m.embed(|e|{
             e.footer(|f|{
+
                 f.icon_url(user_url);
                 f.text(format!("Last command by:{}",db[0]));
                f
@@ -232,6 +235,10 @@ fn spread(ctx: &mut Context, msg: &Message)-> CommandResult{
             e
         });
         db[0] = data.to_string();
+        db[1] = match msg.author.avatar_url().as_ref(){
+            Some(e) => e.to_string(),
+            None => "https://discordapp.com/assets/dd4dbc0016779df1378e7812eabaa04d.png".to_string()
+        };
         m
     });
     if let Err(e) = reply{
