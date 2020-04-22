@@ -271,9 +271,11 @@ fn process_command(input:String) -> Result<String,SpreadsheetError>{
             for r in 0..a.len(){
                 let mut arr = vec![String::new()];
                 for c in 0..a[r].len(){
-                    arr.insert(c,a[r as usize][c as usize].cell_text());
+                    arr.insert(c,a[c as usize][r as usize].cell_text());
                 }
-                key.write_record(&arr);
+                if let Err(e) =key.write_record(&arr){
+                  println!("error writing to record {}",e);
+                };
             }
             std::mem::drop(a);
             Ok(String::from("Spreadsheet exported as *export.csv*, use command *export* to get a copy"))
