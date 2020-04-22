@@ -1,140 +1,165 @@
-pub mod spreadsheet;
+#[macro_use]extern crate lazy_static;
+#[macro_use]extern crate yard;
+#[macro_use]extern crate csv;
+#[macro_use]extern crate diesel;
+use typemap::Key;
 
-#[macro_use]
+use commands::lock::*;
 
-extern crate lazy_static;
-extern crate yard;
-
-use serenity::client::Client;
-use std::sync::Mutex;
-use serde::{Serialize, Deserialize};
-use serenity::model::channel::{Message, Embed};
-use serenity::prelude::{EventHandler, Context};
-use serenity::framework::standard::{
-    StandardFramework,
-    CommandResult,
-    macros::{
-        command,
-        group
-    }
+mod commands;
+pub mod models;
+pub mod schema;
+use std::{
+    {env,thread},
+    sync::{Arc,Mutex},
+    time::{Duration,SystemTime},
+    collections::{HashMap,HashSet},
+    io::Read
 };
-use serenity::CacheAndHttp;
-use std::env;
-use std::thread;
-use serenity::client::validate_token;
-use serenity::utils::MessageBuilder;
-use serenity::model::gateway::Activity;
-use std::sync::Arc;
-use std::time::{Duration, SystemTime};
-use serenity::model::guild::{Guild, Member};
-use serenity::http::routing::RouteInfo::CreateMessage;
-use serenity::builder::CreateEmbed;
-use std::collections::HashMap;
-use serenity::model::id::UserId;
+use serenity::{
+  client::Client,
+  CacheAndHttp,
+  http::{self,client::Http,routing::RouteInfo::CreateMessage},
+  client::{validate_token,bridge::gateway::ShardManager},
+  model::{gateway::{Activity, Ready},
+          guild::{Guild, Member},id::UserId,
+          channel::{Message, Embed}
+         },
+  utils::MessageBuilder,
+  builder::CreateEmbed,
+};
+
+use serde::{Serialize, Deserialize};
+use serenity::prelude::{EventHandler, Context, TypeMapKey};
+use serenity::framework::standard::{StandardFramework, CommandResult, macros::{
+    command,
+    group,
+    check
+}, HelpOptions, Args, CommandGroup, help_commands, CommandOptions, CheckResult, DispatchError};
+use commands::{
+    bot_commands::*,
+};
+use serenity::model::event::ResumedEvent;
+use std::path::Path;
+use diesel::{
+    SqliteConnection,
+    r2d2::{ ConnectionManager, Pool },
+};
+
+struct CommandCounter;
+impl TypeMapKey for CommandCounter{
+    type Value = HashMap<String,u64>;
+}
+struct ShardManagerContainer;
+
+impl Key for ShardManagerContainer {
+    type Value = Arc<serenity::prelude::Mutex<ShardManager>>;
+}
+
+pub type DbPoolType = Arc<Pool<ConnectionManager<SqliteConnection>>>;
+pub struct DbPool(DbPoolType);
+
+impl Key for DbPool{
+    type Value = DbPoolType;
+}
+struct Bans;
+impl Key for Bans{
+    type Value = HashMap<serenity::model::prelude::UserId,Vec<models::Ban>>;
+}
+
 
 struct Handler;
 impl EventHandler for Handler {
-    fn message(&self, ctx: Context, msg: Message) {
+    fn ready(&self,ctx:Context,ready: Ready){
+        //set_game_presence_help(&ctx);
+        let ctx = Arc::new(Mutex::new(ctx));
+        if let Some(shard) = ready.shard {
+            match shard[0] {
+                0 => {
 
-        let activity = "use 'help;' for spreadsheet commands";
-        ctx.set_activity(Activity::playing(&activity));
-        if (msg.content.starts_with(";")|| msg.content.ends_with(";")) && msg.content.len() > 1 {
-            let input = &msg.content.replace(";","");
-            let mut input_arr:Vec<String> = input.splitn(2," ").map(|x| x.to_string()).collect();
-            match input_arr[0].to_uppercase().as_ref(){
-                "SERVERS"=>{
-                    let string = ctx.clone();
-                    let test = &string.cache.read().guilds;
-                    let mut trt:String = "".to_string();
-                    if input_arr.len() >= 2{
-                        println!("{:#?}",input_arr);
-                        let input_two = &input_arr[1];
-                        if &input_two[0..1] == "\"" && &input_two[input_two.len()-1..input_two.len()] == "\""{
-                            let server_named = &input_two[1..input_two.len()-1];
-                            for (guild,arc) in test{
-                                if arc.read().name.eq(server_named){
-                                    let mut response = MessageBuilder::new();
-                                    for (userid,username) in &arc.read().members{
-                                            response.push(format!(" userid:`{}` username:`{}`\n",userid,username.user.read().name));
-											println!("{}",format!(" userid:`{}` username:`{}`\n",userid,username.user.read().name));
-											for f in &username.roles{
-												//response.push(format!("roles: {}\n",f.to_role_cached(&ctx.cache).unwrap().name));
-												println!("{}",format!("roles: {}\n",f.to_role_cached(&ctx.cache).unwrap().name));
-											}
-                                        //test
-                                    }
-									if let Err(why) =msg.channel_id.say(&ctx.http,&response){
-                                            println!("Error sending message: {:?}",why);
-                                        };
-                                }
-                            }
-                            // if let Err(why) =  msg.reply(ctx,format!("{}",trt)){
-                            //     println!("Error sending message: {:?}",why);
-                            // };
+                    println!("Connected as {}", ready.user.name);
+                },
+                1 => {
+                    println!("{}","thread active");
+                    status_thread(ready.user.id, ctx)},
+                _ => { },
+            };
 
-                        } else{
-                            if let Err(why) =  msg.reply(ctx,format!("{}","``` Error parsing server name, please enter with quotes,")){
-                                println!("Error sending message: {:?}",why);
-                            };
-                        }
-                    }else{
-                        for val in test{
-                            trt = format!("{}\n> {}", trt, val.1.read().name);
-                        }
-                        println!("{}",trt);
-
-                        if let Err(why) =  msg.reply(ctx,format!("{}",trt)){
-                            println!("Error sending message: {:?}",why);
-                        };
-                    }
-                }
-                "HELP"=>{
-                    let url = "https://discordapp.com/api/oauth2/authorize?client_id=684150439721304095&permissions=0&scope=bot";
-                    let help = format!(">>> Spreadsheet-bot command basics:\n\
-                     -Every command for spreadsheet-bot  starts with the prefix `;` followed by a cell to reference on the sheet\n\
-                     -A reference to a cell is done by the column letter followed by row number (ex: `a1`)\n\
-                     -A cell can be set by a cell reference followed by a equal sign ( separated by a space ) (ex: `a1  = 2`)\n\
-                     -A cell can be set to a string, instead of a number, when quotes are in place ( ex: `a1 = \"hello world\" `)\n\
-                     -A cell could also reference other cells by putting a cell reference in the deceleration (ex: `a1 = ( b1 * 2 )` )\n\
-                     they can also reference multiple cells\n\n\
-                     -Spreadsheet can be printed with `;spread`, `;spreadsheet` ,or `;print`\n\
-                     -Spreadsheet can be cleared with the `;clear` command, or combined with a cell ref to clear a cell (ex: `;clear a1`)\n\n\
-                     The spreadsheet is the same for every server that it is on and can be changed by anyone\n\
-                     Creator: ***Chilla#4568***\n\
-                      invite the bot with this link: {}",url);
-                    if let Err(why) = msg.author.direct_message(ctx,|ret|{
-                        ret.embed(|r|
-                            r.description(&help).color((0,255,0))
-
-                        );
-                        ret
-                    }){
-                        println!("Error sending message: {:?}",why);
-                    };
-                }
-                "CREDIT"=>{
-                    let response = MessageBuilder::new()
-                        .push_quote_line("Spreadsheet bot creator: Chilla#4568")
-                        .push_quote_line("Discord bot API credit: Serenity Team");
-                    //msg.channel_id.broadcast_typing(ctx);
-                    if let Err(why) =msg.channel_id.say(&ctx.http,&response){
-                        println!("Error sending message: {:?}",why);
-                    };
-                }
-                _=>{
-                    let mut  l = spreadsheet::enter_command(input.parse().unwrap());
-
-                    println!("username:{},command:{}",msg.author.name,msg.content);
-                    println!("user id:{}, username:{}, spreadsheet \n{}",msg.author.id,msg.author.name,l);
-                    l = format!("\n```{}```",l);
-                    if let Err(why) =  msg.reply(ctx,l ){
-                        println!("Error sending message: {:?}",why);
-                    };
-                }
-            }
+            println!(
+                "{} is connected on shard {}/{}!",
+                ready.user.name,
+                shard[0],
+                shard[1],
+            );
         }
     }
+    fn resume(&self,_:Context,_:ResumedEvent){
+        println!("Resumed");
+    }
 }
+fn set_game_presence(ctx: &Context, game_name: &str) {
+    let game = serenity::model::gateway::Activity::playing(game_name);
+    let status = serenity::model::user::OnlineStatus::Online;
+    ctx.set_presence(Some(game), status);
+}
+fn set_game_presence_help(ctx: &Context) {
+    let prefix = String::from(";");
+    set_game_presence(ctx, &format!("Type {}sh for spreadsheet help", prefix));
+}
+
+fn get_guilds(ctx: &Context) -> Result<usize, serenity::Error> {
+    Ok(*&ctx.cache.read().guilds.len().clone() as usize)
+}
+fn status_thread(user_id:UserId, ctx: Arc<Mutex<Context>>){
+    std::thread::spawn(move||
+        loop{
+            set_game_presence_help(&ctx.lock().unwrap());
+            std::thread::sleep(std::time::Duration::from_secs(15));
+            let guilds = get_guilds(&ctx.lock().unwrap());//TODO errors out here
+            match guilds{
+                Ok(count)=>{
+                    set_game_presence(&ctx.lock().unwrap(),&format!("Excelling {} servers",count));
+                    std::thread::sleep(std::time::Duration::from_secs(18));
+                },
+                Err(e) => println!("Error while retrieving guild count: {}", e),
+            }
+
+
+        }
+    );
+}
+#[check]
+#[name = "Admin"]
+// Whether the check shall be tested in the help-system.
+#[check_in_help(true)]
+// Whether the check shall be displayed in the help-system.
+#[display_in_help(true)]
+fn admin_check(ctx: &mut Context, msg: &Message, _: &mut Args, _: &CommandOptions) -> CheckResult {
+    if let Some(member) = msg.member(&ctx.cache) {
+        if let Ok(permissions) = member.permissions(&ctx.cache) {
+            return permissions.administrator().into();
+        }
+    }
+
+    false.into()
+}
+
+
+#[group]
+#[commands(servers,config,lock,unlock)]
+#[checks(Admin)]
+#[description = ":star: Administrator"]
+struct Owners;
+
+#[group]
+#[commands(ping,about)]
+#[description = ":clipboard: About"]
+struct General;
+
+#[group]
+#[commands(spread,invite,spreadsheethelp,export)]
+#[description = ":bar_chart: Spreadsheet"]
+struct Spreadsheet;
 
 
 fn main() {
@@ -142,7 +167,61 @@ fn main() {
     let token = env::var("DISCORD_TOKEN")
         .expect("Expected a token in the environment");
     let mut client = Client::new(&token, Handler).expect("Err creating client");
+    {
+        let mut data = client.data.write();
+        data.insert::<ShardManagerContainer>(Arc::clone(&client.shard_manager));
+    }
+    let owners = match client.cache_and_http.http.get_current_application_info(){
+        Ok(info)=>{
+            let mut set = HashSet::new();
+            set.insert(info.owner.id);
+            set
+        },
+        Err(why)=> panic!("Couldn't get application info: {:?}", why),
+
+    };
+    client.with_framework(StandardFramework::new()
+        .configure(|c| c
+            .owners(owners)
+            .prefix(";"))
+        .help(&SPREADSHEETBOT_HELP)
+        .group(&GENERAL_GROUP)
+        .group(&OWNERS_GROUP)
+        .group(&SPREADSHEET_GROUP)
+        .on_dispatch_error(|ctx,msg,error|{
+         match error{
+             DispatchError::Ratelimited(seconds)=>{
+                 msg.reply(ctx,&format!("Try command again in {} seconds",seconds)); },
+             DispatchError::OnlyForOwners | DispatchError::LackingPermissions(_)|DispatchError::LackingRole|DispatchError::BlockedUser =>{
+               msg.reply(ctx,"you're not allowed to do this");
+             },
+             DispatchError::BlockedGuild=>{
+                 msg.reply(ctx,"not available on the server");
+             }
+             _ => {}
+         }
+        }));
+    let shard_manager = client.shard_manager.clone();
+    std::thread::spawn(move||{
+        loop {
+            std::thread::sleep(std::time::Duration::from_secs(30));
+
+            let lock = shard_manager.lock();
+            let shard_runners = lock.runners.lock();
+
+            for (id, runner) in shard_runners.iter() {
+                println!(
+                    "Shard ID {} is {} with a latency of {:?}",
+                    id,
+                    runner.stage,
+                    runner.latency,
+                );
+            }
+        }
+    });
     if let Err(why) = client.start_shards(2) {
         println!("Client error: {:?}", why);
     }
+
+    let http_client = Http::new_with_token(&token);
 }
