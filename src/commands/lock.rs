@@ -165,7 +165,7 @@ fn lock(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 #[required_permissions("ADMINISTRATOR")]
 #[only_in(guilds)]
 #[owner_privilege]
-fn unban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+fn unlock(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let mut data = ctx.data.write();
     let db = data.get::<DbPool>().unwrap();
     let user_id = args.single::<UserId>();

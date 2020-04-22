@@ -146,7 +146,7 @@ fn admin_check(ctx: &mut Context, msg: &Message, _: &mut Args, _: &CommandOption
 
 
 #[group]
-#[commands(servers,config,lock)]
+#[commands(servers,config,lock,unlock)]
 #[checks(Admin)]
 #[description = ":star: Administrator"]
 struct Owners;
@@ -157,7 +157,7 @@ struct Owners;
 struct General;
 
 #[group]
-#[commands(spread,invite,spreadsheethelp)]
+#[commands(spread,invite,spreadsheethelp,export)]
 #[description = ":bar_chart: Spreadsheet"]
 struct Spreadsheet;
 
