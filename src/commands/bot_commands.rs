@@ -171,7 +171,7 @@ fn telephone(ctx: &mut Context, msg: &Message)-> CommandResult{
         }
     };
     let mut input_arr:Vec<String> = input.splitn(2,"}{").map(|x| x.to_string()).collect();
-
+	println!("{:?}",input_arr);
     if input_arr.len() >=2 {
         let guildlock =  &msg.guild(&ctx);
         let test =&guildlock.as_ref().unwrap().read().channels;
@@ -181,6 +181,7 @@ fn telephone(ctx: &mut Context, msg: &Message)-> CommandResult{
             };
         }
         let channelsearch = &input_arr[0][1..input_arr[0].len()];
+		println!("{}",channelsearch);
         let mut trt:String = "".to_string();
         for(channelidx,y) in test{
 
