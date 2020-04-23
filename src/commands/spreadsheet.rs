@@ -284,7 +284,7 @@ fn process_command(input:String) -> Result<String,SpreadsheetError>{
             let mut key = wtr.unwrap();
             let db = GRID.lock().map_err(|_| SpreadsheetError::MutexError)?;
             let a = db.clone();
-            for r in 0..a.len(){
+            for r in 0..SPREADROW{
                 let mut arr = vec![String::new()];
                 for c in 0..a[r].len(){
                     arr.insert(c,a[c as usize][r as usize].cell_text());

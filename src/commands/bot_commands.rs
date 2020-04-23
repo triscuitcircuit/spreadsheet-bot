@@ -162,69 +162,71 @@ fn config(ctx: &mut Context, msg: &Message)-> CommandResult{
 #[description = "telephone to another channel on the server with ';t{channel name}{msg contents}' (dont forget to the leave the curly braces))"]
 #[aliases("t")]
 fn telephone(ctx: &mut Context, msg: &Message)-> CommandResult{
-    let string = ctx.clone();
-    let input: String = {
-        if msg.content.contains(";t "){
-            String::from(format!("{}",msg.content.replace(";t ", "")))
-        }else{
-            String::from(format!("{}",msg.content.replace(";telephone ", "")))
-        }
-    };
-    let mut input_arr:Vec<String> = input.splitn(2,"}{").map(|x| x.to_string()).collect();
-
-    if input_arr.len() >=2 {
-        let guildlock =  &msg.guild(&ctx);
-        let test =&guildlock.as_ref().unwrap().read().channels;
-        if &input_arr[0].len() -1 == 0{
-            if let Err(e) = msg.reply(&ctx,"Please specify a real channel name"){
-                println!("error sending message {}",e);
-            };
-        }
-        let channelsearch = &input_arr[0][1..input_arr[0].len()];
-        let mut trt:String = "".to_string();
-        for(channelidx,y) in test{
-
-            if y.read().name.eq(channelsearch){
-                if &input_arr[1].len() -1 == 0{
-                   if let Err(e) = channelidx.send_message(&ctx.http,|r|{
-                       r.embed(|e|{
-                           e.description(" ");
-                           e.footer(|f|{
-                               f.text(format!("sent by {}",msg.author.name));
-                               f.icon_url(msg.author.avatar_url().expect("https://discordapp.com/assets/dd4dbc0016779df1378e7812eabaa04d.png"));
-                               f
-                           });
-                           e
-                       });
-                       r
-                   }){
-                       println!("Error sending message {}",e);
-                   }
-                }else{
-                    if let Err(e) = channelidx.send_message(&ctx.http,|r|{
-                        r.embed(|e|{
-                            e.description(&input_arr[1]);
-                            e.footer(|f|{
-                                f.text(format!("sent by {}",msg.author.name));
-                                f.icon_url(msg.author.avatar_url().expect("https://discordapp.com/assets/dd4dbc0016779df1378e7812eabaa04d.png"));
-                                f
-                            });
-                            e
-                        });
-                        r
-                    }){
-                        println!("Error sending message {}",e);
-                    }
-                }
-
+    if !msg.is_private() {
+        let string = ctx.clone();
+        let input: String = {
+            if msg.content.contains(";t "){
+                String::from(format!("{}",msg.content.replace(";t ", "")))
+            }else{
+                String::from(format!("{}",msg.content.replace(";telephone ", "")))
             }
-        }
-        if let Err(e) = msg.reply(&ctx,"channel name not found in this guild"){
-            println!("error sending message {}",e);
-        }
-    }else{
-        if let Err(e) = msg.reply(&ctx,"Please specify channel"){
-            println!("error sending message {}",e);
+        };
+        let mut input_arr:Vec<String> = input.splitn(2,"}{").map(|x| x.to_string()).collect();
+
+        if input_arr.len() >=2 {
+            let guildlock =  &msg.guild(&ctx);
+            let test =&guildlock.as_ref().unwrap().read().channels;
+            if &input_arr[0].len() -1 == 0{
+                if let Err(e) = msg.reply(&ctx,"Please specify a real channel name"){
+                    println!("error sending message {}",e);
+                };
+            }
+            let channelsearch = &input_arr[0][1..input_arr[0].len()];
+            let mut trt:String = "".to_string();
+            for(channelidx,y) in test{
+
+                if y.read().name.eq(channelsearch){
+                    if &input_arr[1].len() -1 == 0{
+                       if let Err(e) = channelidx.send_message(&ctx.http,|r|{
+                           r.embed(|e|{
+                               e.description(" ");
+                               e.footer(|f|{
+                                   f.text(format!("sent by {}",msg.author.name));
+                                   f.icon_url(msg.author.avatar_url().expect("https://discordapp.com/assets/dd4dbc0016779df1378e7812eabaa04d.png"));
+                                   f
+                               });
+                               e
+                           });
+                           r
+                       }){
+                           println!("Error sending message {}",e);
+                       }
+                    }else{
+                        if let Err(e) = channelidx.send_message(&ctx.http,|r|{
+                            r.embed(|e|{
+                                e.description(&input_arr[1]);
+                                e.footer(|f|{
+                                    f.text(format!("sent by {}",msg.author.name));
+                                    f.icon_url(msg.author.avatar_url().expect("https://discordapp.com/assets/dd4dbc0016779df1378e7812eabaa04d.png"));
+                                    f
+                                });
+                                e
+                            });
+                            r
+                        }){
+                            println!("Error sending message {}",e);
+                        }
+                    }
+
+                }
+            }
+            if let Err(e) = msg.reply(&ctx,"channel name not found in this guild"){
+                println!("error sending message {}",e);
+            }
+        }else{
+            if let Err(e) = msg.reply(&ctx,"Please specify channel"){
+                println!("error sending message {}",e);
+            }
         }
     }
     Ok(())
