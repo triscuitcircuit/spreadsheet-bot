@@ -165,9 +165,9 @@ fn telephone(ctx: &mut Context, msg: &Message)-> CommandResult{
     let string = ctx.clone();
     let input: String = {
         if msg.content.contains(";t "){
-            String::from(format!("{}",msg.content.replace(";t", "")))
+            String::from(format!("{}",msg.content.replace(";t ", "")))
         }else{
-            String::from(format!("{}",msg.content.replace(";telephone", "")))
+            String::from(format!("{}",msg.content.replace(";telephone ", "")))
         }
     };
     let mut input_arr:Vec<String> = input.splitn(2,"}{").map(|x| x.to_string()).collect();
@@ -218,9 +218,9 @@ fn telephone(ctx: &mut Context, msg: &Message)-> CommandResult{
                 }
 
             }
-            if let Err(e) = msg.reply(&ctx,"channel name not found in this guild"){
-                println!("error sending message {}",e);
-            }
+        }
+        if let Err(e) = msg.reply(&ctx,"channel name not found in this guild"){
+            println!("error sending message {}",e);
         }
     }else{
         if let Err(e) = msg.reply(&ctx,"Please specify channel"){
