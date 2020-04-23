@@ -24,6 +24,10 @@ pub(crate) struct ShardManagerContainer;
 impl TypeMapKey for ShardManagerContainer{
     type Value = Arc<Mutex<ShardManager>>;
 }
+extern crate chrono;
+use chrono::{Datelike, Timelike, Utc};
+use serenity::http::routing::RouteInfo::CreateMessage;
+
 
 #[command]
 #[owners_only]
@@ -31,7 +35,6 @@ impl TypeMapKey for ShardManagerContainer{
 fn servers(ctx: &mut Context,msg:&Message)->CommandResult{
     let string = ctx.clone();
     let input = &msg.content;
-
     let mut input_arr:Vec<String> = input.splitn(2," ").map(|x| x.to_string()).collect();
     let test = &string.cache.read().guilds;
     let mut trt:String = "".to_string();
@@ -142,9 +145,90 @@ fn interroles(ctx: &mut Context, msg: &Message)-> CommandResult{
 }
 #[command]
 #[owners_only]
+#[description = "bot conifg, type 'true' for interserver roles (when released) "]
 fn config(ctx: &mut Context, msg: &Message)-> CommandResult{
-    //TODO
+    if let Err(e) = msg.author.direct_message(ctx,|m|{
+        m.embed(|e|{
+            e.description("Inter-server roles feature not ready yet");
+            e
+        });
+       m
+    }){
+        println!("Error sending message {}",e);
+    }
     Ok(())
+}
+#[command]
+#[description = "telephone to another channel on the server with ';t{channel name}{msg contents}' (dont forget to the leave the curly braces))"]
+#[aliases("t")]
+fn telephone(ctx: &mut Context, msg: &Message)-> CommandResult{
+    let string = ctx.clone();
+    let input: String = {
+        if msg.content.contains(";t "){
+            String::from(format!("{}",msg.content.replace(";t", "")))
+        }else{
+            String::from(format!("{}",msg.content.replace(";telephone", "")))
+        }
+    };
+    let mut input_arr:Vec<String> = input.splitn(2,"}{").map(|x| x.to_string()).collect();
+
+    if input_arr.len() >=2 {
+        let guildlock =  &msg.guild(&ctx);
+        let test =&guildlock.as_ref().unwrap().read().channels;
+        if &input_arr[0].len() -1 == 0{
+            if let Err(e) = msg.reply(&ctx,"Please specify a real channel name"){
+                println!("error sending message {}",e);
+            };
+        }
+        let channelsearch = &input_arr[0][1..input_arr[0].len()];
+        let mut trt:String = "".to_string();
+        for(channelidx,y) in test{
+
+            if y.read().name.eq(channelsearch){
+                if &input_arr[1].len() -1 == 0{
+                   if let Err(e) = channelidx.send_message(&ctx.http,|r|{
+                       r.embed(|e|{
+                           e.description(" ");
+                           e.footer(|f|{
+                               f.text(format!("sent by {}",msg.author.name));
+                               f.icon_url(msg.author.avatar_url().expect("https://discordapp.com/assets/dd4dbc0016779df1378e7812eabaa04d.png"));
+                               f
+                           });
+                           e
+                       });
+                       r
+                   }){
+                       println!("Error sending message {}",e);
+                   }
+                }else{
+                    if let Err(e) = channelidx.send_message(&ctx.http,|r|{
+                        r.embed(|e|{
+                            e.description(&input_arr[1]);
+                            e.footer(|f|{
+                                f.text(format!("sent by {}",msg.author.name));
+                                f.icon_url(msg.author.avatar_url().expect("https://discordapp.com/assets/dd4dbc0016779df1378e7812eabaa04d.png"));
+                                f
+                            });
+                            e
+                        });
+                        r
+                    }){
+                        println!("Error sending message {}",e);
+                    }
+                }
+
+            }
+            if let Err(e) = msg.reply(&ctx,"channel name not found in this guild"){
+                println!("error sending message {}",e);
+            }
+        }
+    }else{
+        if let Err(e) = msg.reply(&ctx,"Please specify channel"){
+            println!("error sending message {}",e);
+        }
+    }
+    Ok(())
+
 }
 #[command]
 #[description = "A helpful command that formulates instructions for operations of the spreadsheet"]
@@ -205,12 +289,13 @@ fn about(ctx: &mut Context, msg: &Message)-> CommandResult{
 #[example =";s a1 = 21"]
 #[aliases("s")]
 fn spread(ctx: &mut Context, msg: &Message)-> CommandResult{
-    let mut input: String = String::from("");
-    if msg.content.contains(";s ") {
-        input = format!("{}",msg.content.replace(";s ", ""));
-    }else{
-        input = format!("{}",msg.content.replace(";spread ", ""));
-    }
+    let input: String = {
+       if msg.content.contains(";s "){
+           String::from(format!("{}",msg.content.replace(";s ", "")))
+       }else{
+           String::from(format!("{}",msg.content.replace(";spreadsheet ", "")))
+       }
+    };
     let mut l = spreadsheet::enter_command(input.parse().unwrap());
     println!("username:{},command:{}",msg.author.name,msg.content);
     println!("user id:{}, username:{}, spreadsheet \n{}",msg.author.id,msg.author.name,l);
@@ -218,18 +303,13 @@ fn spread(ctx: &mut Context, msg: &Message)-> CommandResult{
     let data = &msg.author.name;
     let mut db = USERS.lock().map_err(|_|Error::from_raw_os_error(2))?;//May cause error
 
-    db[1] = match db[1].as_ref(){
-        "Nobody"=>{"https://discordapp.com/assets/dd4dbc0016779df1378e7812eabaa04d.png".to_string()},
-        _ => {db[1].clone()} ,
-    };
     let user_url = db[1].clone();
     let reply = msg.channel_id.send_message(&ctx.http, |m|{
         m.content(&l);
         m.embed(|e|{
             e.footer(|f|{
-
-                f.icon_url(user_url);
-                f.text(format!("Last command by:{}",db[0]));
+                f.icon_url(user_url.clone());
+                f.text(format!("Last command by:{} at: {} ",db[0],db[2]));
                f
             });
             e
@@ -239,8 +319,10 @@ fn spread(ctx: &mut Context, msg: &Message)-> CommandResult{
             Some(e) => e.to_string(),
             None => "https://discordapp.com/assets/dd4dbc0016779df1378e7812eabaa04d.png".to_string()
         };
+        db[2] = Utc::now().to_string();
         m
     });
+
     if let Err(e) = reply{
         println!("error sending message {}",e);
     }
