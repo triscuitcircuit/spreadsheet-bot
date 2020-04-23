@@ -174,6 +174,7 @@ fn telephone(ctx: &mut Context, msg: &Message)-> CommandResult{
         let mut input_arr:Vec<String> = input.splitn(2,"}{").map(|x| x.to_string()).collect();
 
         if input_arr.len() >=2 {
+            let mut x:bool = false;
             let guildlock =  &msg.guild(&ctx);
             let test =&guildlock.as_ref().unwrap().read().channels;
             if &input_arr[0].len() -1 == 0{
@@ -187,6 +188,7 @@ fn telephone(ctx: &mut Context, msg: &Message)-> CommandResult{
 
                 if y.read().name.eq(channelsearch){
                     if &input_arr[1].len() -1 == 0{
+                        x = true;
                        if let Err(e) = channelidx.send_message(&ctx.http,|r|{
                            r.embed(|e|{
                                e.description(" ");
@@ -202,6 +204,7 @@ fn telephone(ctx: &mut Context, msg: &Message)-> CommandResult{
                            println!("Error sending message {}",e);
                        }
                     }else{
+                        x= true;
                         if let Err(e) = channelidx.send_message(&ctx.http,|r|{
                             r.embed(|e|{
                                 e.description(&input_arr[1]);
@@ -220,8 +223,10 @@ fn telephone(ctx: &mut Context, msg: &Message)-> CommandResult{
 
                 }
             }
-            if let Err(e) = msg.reply(&ctx,"channel name not found in this guild"){
-                println!("error sending message {}",e);
+            if !x {
+                if let Err(e) = msg.reply(&ctx,"channel name not found in this guild (make sure the bot has access to the channel)"){
+                    println!("error sending message {}",e);
+                }
             }
         }else{
             if let Err(e) = msg.reply(&ctx,"Please specify channel"){
