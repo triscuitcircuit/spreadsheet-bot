@@ -235,8 +235,8 @@ fn telephone(ctx: &mut Context, msg: &Message)-> CommandResult{
 #[aliases("sh")]
 fn spreadsheethelp(ctx: &mut Context, msg: &Message)-> CommandResult{
                 let url = "https://discordapp.com/api/oauth2/authorize?client_id=684150439721304095&permissions=0&scope=bot";
-                let help = format!(">>>
-                 -Every command for spreadsheet-bot  starts with the prefix `;s` followed first by a space then a cell to reference on the sheet\n\
+                let help = format!("
+                 >>> -Every command for spreadsheet-bot  starts with the prefix `;s` followed first by a space then a cell to reference on the sheet\n\
                  -A reference to a cell is done by the column letter followed by row number (ex: `a1`)\n\
                  -A cell can be set by a cell reference followed by a equal sign ( separated by a space ) (ex: `a1  = 2`)\n\
                  -A cell can be set to a string, instead of a number, when quotes are in place ( ex: `a1 = \"hello world\" `)\n\
