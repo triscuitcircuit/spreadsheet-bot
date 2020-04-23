@@ -10,7 +10,6 @@ use std::{
 };
 use serde_json::{self,value::Value::Array};
 use serde::{Serialize, Deserialize};
-//use std::sync::mpsc::{channel, Sender};
 use csv::Writer;
 
 
@@ -24,8 +23,11 @@ enum SpreadsheetError {
     ExitRequested,
 }
 
+const SPREADROW:usize = 12;
+const SPREADCOL:usize = 5;
+
 lazy_static!{
-    static ref GRID: Mutex<Vec<Vec<Cell>>> = Mutex::new(vec![vec![Cell::Empty; 6]; 6]);
+    static ref GRID: Mutex<Vec<Vec<Cell>>> = Mutex::new(vec![vec![Cell::Empty; SPREADROW]; SPREADCOL]);
 }
 
 
@@ -94,6 +96,7 @@ impl Cell{
 }
 #[derive(Debug, Clone,Deserialize,Serialize)]
 struct FormulaCell{
+    //cell: String,
     command: String,
 }
 impl FormulaCell{
@@ -209,8 +212,8 @@ impl FormulaCell{
 }
 fn get_grid_text() -> Result<String,SpreadsheetError> {
     let db = GRID.lock().map_err(|_| SpreadsheetError::MutexError)?;
-    let row: u8 = db.len() as u8;
-    let col: u8 = db[0].len() as u8;
+    let row: u8 = SPREADROW as u8;
+    let col: u8 = SPREADCOL as u8;
     let start: u8 = 65;
     let mut top = String::from("   |");
     let mut bottom = String::new();
@@ -255,9 +258,22 @@ fn process_command(input:String) -> Result<String,SpreadsheetError>{
                 .expect("Something went wrong reading the file");
             let b:Vec<Vec<Cell>> = serde_json::from_str(&serialized).unwrap();
             let mut db = GRID.lock().map_err(|_| SpreadsheetError::MutexError)?;
-
-            for r in 0..db.len(){
-                for c in 0..db[r].len(){
+            let row: usize = {
+                if db.len() < b.len(){
+                    db.len()
+                }else{
+                    b.len()
+                }
+            };
+            let col:usize ={
+                if SPREADCOL < db[0].len(){
+                    SPREADCOL
+                }else{
+                    db[0].len()
+                }
+            };
+            for r in 0..row{
+                for c in 0..col{
                     db[r as usize][c as usize] = b[r as usize][c as usize].clone();
                 }
             }
@@ -325,11 +341,11 @@ fn process_command(input:String) -> Result<String,SpreadsheetError>{
             } else {
                 {
                     let mut db = GRID.lock().map_err(|_| SpreadsheetError::MutexError)?;
-                    let row = db.len();
-                    let col = db[0].len();
+                    let row = SPREADROW;
+                    let col = SPREADCOL;
                     for r in 0..row {
                         for c in 0..col {
-                            db[r][c] = Cell::Empty;
+                            db[c][r] = Cell::Empty;
                         }
                     }
                 }

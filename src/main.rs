@@ -46,6 +46,7 @@ use diesel::{
     r2d2::{ ConnectionManager, Pool },
 };
 use std::borrow::BorrowMut;
+use std::io::Error;
 
 struct CommandCounter;
 impl TypeMapKey for CommandCounter{
@@ -61,7 +62,7 @@ pub enum Usernum{
 }
 
 lazy_static! {
-    pub static ref USERS: Mutex<Vec<String>> = Mutex::new(vec!["Nobody".to_string();2]);
+    pub static ref USERS: Mutex<Vec<String>> = Mutex::new(vec!["Nobody".to_string();3]);
 }
 
 
@@ -81,6 +82,7 @@ struct Handler;
 impl EventHandler for Handler {
 
     fn ready(&self,ctx:Context,ready: Ready){
+
         let mut  a = Usernum::Userdata {username: "".to_string(),url:"".to_string()};
         //set_game_presence_help(&ctx);
         let ctx = Arc::new(Mutex::new(ctx));
@@ -168,13 +170,26 @@ struct Owners;
 struct General;
 
 #[group]
-#[commands(spread,invite,spreadsheethelp,export)]
+#[commands(spread,invite,spreadsheethelp,export,telephone)]
 #[description = ":bar_chart: Spreadsheet"]
 struct Spreadsheet;
 
+#[derive(Debug)]
+enum UserError{
+    MutexError,
+}
+
+fn set_data()->Result<(),UserError>{
+    let mut db = USERS.lock().map_err(|_|UserError::MutexError)?;
+    db[1] = "https://discordapp.com/assets/dd4dbc0016779df1378e7812eabaa04d.png".to_string();
+    db[2] = "No time stated".to_string();
+    Ok(())
+}
 
 fn main() {
-
+    if let Err(e) = set_data(){
+        panic!("Error: {:?}",e);
+    };
     let token = env::var("DISCORD_TOKEN")
         .expect("Expected a token in the environment");
     let mut client = Client::new(&token, Handler).expect("Err creating client");
