@@ -2,6 +2,8 @@
 #[macro_use]extern crate yard;
 #[macro_use]extern crate csv;
 #[macro_use]extern crate diesel;
+#[macro_use]extern crate rand;
+
 use typemap::Key;
 
 use commands::lock::*;
@@ -136,6 +138,8 @@ fn status_thread(user_id:UserId, ctx: Arc<Mutex<Context>>){
                 },
                 Err(e) => println!("Error while retrieving guild count: {}", e),
             }
+            set_game_presence(&ctx.lock().unwrap(),&format!("Use ;help for command list"));
+            std::thread::sleep(std::time::Duration::from_secs(13));
 
 
         }
@@ -165,12 +169,12 @@ fn admin_check(ctx: &mut Context, msg: &Message, _: &mut Args, _: &CommandOption
 struct Owners;
 
 #[group]
-#[commands(ping,about)]
+#[commands(ping,about,telephone,curtime)]
 #[description = ":clipboard: About"]
 struct General;
 
 #[group]
-#[commands(spread,invite,spreadsheethelp,export,telephone)]
+#[commands(spread,invite,spreadsheethelp,export)]
 #[description = ":bar_chart: Spreadsheet"]
 struct Spreadsheet;
 

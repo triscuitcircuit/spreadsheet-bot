@@ -16,6 +16,7 @@ use std::{collections::{HashSet},
           sync::Arc};
 use crate::commands::spreadsheet;
 use crate::{models, Bans, DbPool, USERS};
+use rand::Rng;
 use serenity::http::AttachmentType;
 use std::path::Path;
 use std::io::Error;
@@ -27,6 +28,8 @@ impl TypeMapKey for ShardManagerContainer{
 extern crate chrono;
 use chrono::{Datelike, Timelike, Utc};
 use serenity::http::routing::RouteInfo::CreateMessage;
+use serenity::model::id::ChannelId;
+use serenity::model::channel::Channel;
 
 
 #[command]
@@ -158,9 +161,54 @@ fn config(ctx: &mut Context, msg: &Message)-> CommandResult{
     }
     Ok(())
 }
+fn embed_sender(ctx: &mut Context, msg:&Message, channel: &ChannelId,content: String){
+    if let Err(e) = channel.send_message(&ctx.http,|r|{
+        r.embed(|e|{
+            e.description(&content);
+            e.color((0,230,0));
+            e.footer(|f|{
+                f.text(format!("requested by {}",msg.author.name));
+                f.icon_url(msg.author.avatar_url().expect("https://discordapp.com/assets/dd4dbc0016779df1378e7812eabaa04d.png"));
+                f
+            });
+            e
+        });
+        r
+    }){
+        println!("Error sending message {}",e);
+    }
+
+}
+#[command]
+#[description="this command determines a random number in a range (ex ;r 6)"]
+#[aliases("r")]
+fn roll(ctx: &mut Context, msg: &Message)-> CommandResult{
+
+    let input = &msg.content;
+    let input_arr:Vec<String> = input.splitn(2," ").map(|x| x.to_string()).collect();
+    if input_arr.len() >=2{
+        let mut rng = rand::thread_rng();
+        let num: u8 = match input_arr[1].trim_start_matches(|c: char| !c.is_ascii_digit()).parse::<u8>(){
+            Ok(e)=> e,
+            Err(_r)=> 6,
+        };
+        let roll = rng.gen_range(0,num);
+        embed_sender(ctx,msg,&msg.channel_id,format!("bot rolled: {}",roll));
+    }
+    Ok(())
+}
+#[command]
+#[description="get current time in UTC"]
+#[aliases("time")]
+fn curtime(ctx: &mut Context, msg: &Message)-> CommandResult{
+    let dt = Utc::now();
+    embed_sender(ctx,msg,&msg.channel_id,String::from(dt.format("%a %b %e %T %Y").to_string()));
+    Ok(())
+}
 #[command]
 #[description = "telephone to another channel on the server with ';t{channel name}{msg contents}' (dont forget to the leave the curly braces))"]
 #[aliases("t")]
+#[only_in(guilds)]
 fn telephone(ctx: &mut Context, msg: &Message)-> CommandResult{
     if !msg.is_private() {
         let string = ctx.clone();
@@ -184,45 +232,17 @@ fn telephone(ctx: &mut Context, msg: &Message)-> CommandResult{
             }
             let channelsearch = &input_arr[0][1..input_arr[0].len()];
             let mut trt:String = "".to_string();
-            for(channelidx,y) in test{
-
-                if y.read().name.eq(channelsearch){
+            test.into_iter().for_each(|f|{
+                if f.1.read().name.eq(channelsearch){
                     if &input_arr[1].len() -1 == 0{
                         x = true;
-                       if let Err(e) = channelidx.send_message(&ctx.http,|r|{
-                           r.embed(|e|{
-                               e.description(" ");
-                               e.footer(|f|{
-                                   f.text(format!("sent by {}",msg.author.name));
-                                   f.icon_url(msg.author.avatar_url().expect("https://discordapp.com/assets/dd4dbc0016779df1378e7812eabaa04d.png"));
-                                   f
-                               });
-                               e
-                           });
-                           r
-                       }){
-                           println!("Error sending message {}",e);
-                       }
-                    }else{
+                        embed_sender(ctx,msg,f.0, " ".to_string());
+                }else{
                         x= true;
-                        if let Err(e) = channelidx.send_message(&ctx.http,|r|{
-                            r.embed(|e|{
-                                e.description(&input_arr[1]);
-                                e.footer(|f|{
-                                    f.text(format!("sent by {}",msg.author.name));
-                                    f.icon_url(msg.author.avatar_url().expect("https://discordapp.com/assets/dd4dbc0016779df1378e7812eabaa04d.png"));
-                                    f
-                                });
-                                e
-                            });
-                            r
-                        }){
-                            println!("Error sending message {}",e);
-                        }
+                        embed_sender(ctx,msg,f.0,String::from(&input_arr[1][0..input_arr[1].len()]));
                     }
-
                 }
-            }
+            });
             if !x {
                 if let Err(e) = msg.reply(&ctx,"channel name not found in this guild (make sure the bot has access to the channel)"){
                     println!("error sending message {}",e);

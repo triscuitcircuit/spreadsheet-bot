@@ -20,7 +20,6 @@ enum SpreadsheetError {
     MutexError,
     IndexError,
     NotNumberError,
-    ExitRequested,
 }
 
 const SPREADROW:usize = 12;
