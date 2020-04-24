@@ -285,7 +285,7 @@ fn process_command(input:String) -> Result<String,SpreadsheetError>{
             let a = db.clone();
             for r in 0..SPREADROW{
                 let mut arr = vec![String::new()];
-                for c in 0..a[r].len(){
+                for c in 0..SPREADCOL{
                     arr.insert(c,a[c as usize][r as usize].cell_text());
                 }
                 if let Err(e) =key.write_record(&arr){
