@@ -194,6 +194,10 @@ fn roll(ctx: &mut Context, msg: &Message)-> CommandResult{
         };
         let roll = rng.gen_range(0,num);
         embed_sender(ctx,msg,&msg.channel_id,format!("bot rolled: {}",roll));
+    }else{
+        if let Err(e) = msg.reply(&ctx,"Please specify a real whole number"){
+            println!("error sending message {}",e);
+        };
     }
     Ok(())
 }
