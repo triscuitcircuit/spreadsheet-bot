@@ -273,7 +273,7 @@ fn curtime(ctx: &mut Context, msg: &Message)-> CommandResult{
     Ok(())
 }
 #[command]
-#[description = "telephone to another channel on the server with ';t{channel name}{msg contents}' (dont forget to the leave the curly braces))"]
+#[description = "telephone to another channel on the server with ';t {channel name}{msg contents}' (dont forget to the leave the curly braces))"]
 #[aliases("t")]
 #[only_in(guilds)]
 fn telephone(ctx: &mut Context, msg: &Message)-> CommandResult{
