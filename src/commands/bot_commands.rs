@@ -76,6 +76,67 @@ fn servers(ctx: &mut Context,msg:&Message)->CommandResult{
     Ok(())
 }
 #[command]
+#[description = "inter server message into another servers channel. Usage ;tl {server_name}{channel_name}{message_content}"]
+#[aliases("tl")]
+#[only_in(guilds)]
+fn telelink(ctx: &mut Context, msg: &Message) -> CommandResult{
+    let string = ctx.clone();
+    let input: String = {
+        if msg.content.contains(";t "){
+            String::from(format!("{}",msg.content.replace(";tl ", "")))
+        }else{
+            String::from(format!("{}",msg.content.replace(";telelink ", "")))
+        }
+    };
+    let input_arr:Vec<String> = input.splitn(3,"}{").map(|x| x.to_string()).collect();
+    println!("request sent in for inter-server message :{} , {:?}",&msg.content,input_arr);
+    let test = &string.cache.read().guilds;
+    let mut a = false;
+    if input_arr.len() >= 3{
+        let (servername,channelsearch)= (
+            &input_arr[0][1..input_arr[0].len()],
+            &input_arr[1],
+        );
+        test.into_iter().for_each(|f|{
+            if f.1.read().name.eq(servername){
+                a = true;
+                let mut x = false;
+                let channels = &f.1.as_ref().read().channels;
+                channels.into_iter().for_each(|l|{
+                    if f.1.read().name.eq(channelsearch){
+                        if &input_arr[1].len() -1 == 0{
+                            x = true;
+                            embed_sender(ctx, msg, l.0, " ".to_string());
+                        }else{
+                            x= true;
+                            embed_sender(ctx,msg,l.0,String::from(&input_arr[2][0..input_arr[2].len()-1]));
+                        }
+                    }
+                });
+                if !x {
+                    if let Err(e) = msg.reply(&ctx,"channel name not found in this guild (make sure the bot has access to the channel)"){
+                        println!("error sending message {}",e);
+                    }
+                }
+
+
+
+            }
+            //if f.1.read().name.eq(channelsearch){
+        });
+        if !a{
+            if let Err(e) = msg.reply(ctx,"server not found, please make sure the bot is in the server and has perms"){
+                println!("Error occurred:{}",e);
+            }
+        }
+    }else{
+        if let Err(e) = msg.reply(ctx,"please read the example in ;help (dont forget the curly braces)"){
+            println!("Error occurred:{}",e);
+        }
+    }
+    Ok(())
+}
+#[command]
 #[description = "Get a copy of the spreadsheet .csv export"]
 fn export(ctx: &mut Context, msg: &Message) -> CommandResult{
     if let Err(why) = msg.author.direct_message(ctx,|ret|{
@@ -167,7 +228,7 @@ fn embed_sender(ctx: &mut Context, msg:&Message, channel: &ChannelId,content: St
             e.description(&content);
             e.color((0,230,0));
             e.footer(|f|{
-                f.text(format!("requested by {}",msg.author.name));
+                f.text(format!("requested by {}#{} in server: {}",msg.author.name,msg.author.tag(),&msg.guild(&ctx).as_ref().unwrap().read().name));
                 f.icon_url(msg.author.avatar_url().expect("https://discordapp.com/assets/dd4dbc0016779df1378e7812eabaa04d.png"));
                 f
             });
@@ -235,7 +296,6 @@ fn telephone(ctx: &mut Context, msg: &Message)-> CommandResult{
                 };
             }
             let channelsearch = &input_arr[0][1..input_arr[0].len()];
-            let mut trt:String = "".to_string();
             test.into_iter().for_each(|f|{
                 if f.1.read().name.eq(channelsearch){
                     if &input_arr[1].len() -1 == 0{

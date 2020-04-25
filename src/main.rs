@@ -169,7 +169,7 @@ fn admin_check(ctx: &mut Context, msg: &Message, _: &mut Args, _: &CommandOption
 struct Owners;
 
 #[group]
-#[commands(ping,about,telephone,curtime)]
+#[commands(ping,about,telephone,curtime,telelink)]
 #[description = ":clipboard: About"]
 struct General;
 
