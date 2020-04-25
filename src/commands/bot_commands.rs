@@ -49,6 +49,7 @@ fn servers(ctx: &mut Context,msg:&Message)->CommandResult{
             for (guild,arc) in test{
                 if arc.read().name.eq(server_named){
                     let mut response = MessageBuilder::new();
+
                     for (userid,username) in &arc.read().members{
                         response.push(format!(" userid:`{}` username:`{}`\n",userid,username.user.read().name));
                         println!("{}",format!(" userid:`{}` username:`{}`\n",userid,username.user.read().name));
@@ -99,11 +100,12 @@ fn telelink(ctx: &mut Context, msg: &Message) -> CommandResult{
         );
         test.into_iter().for_each(|f|{
             if f.1.read().name.eq(servername){
+
                 a = true;
                 let mut x = false;
                 let channels = &f.1.as_ref().read().channels;
                 channels.into_iter().for_each(|l|{
-                    if f.1.read().name.eq(channelsearch){
+                    if l.1.read().name.eq(channelsearch){
                         if &input_arr[1].len() -1 == 0{
                             x = true;
                             embed_sender(ctx, msg, l.0, " ".to_string());
