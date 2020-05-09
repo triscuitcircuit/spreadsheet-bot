@@ -17,6 +17,7 @@ use csv::Writer;
 enum SpreadsheetError {
     ParseIntError(std::num::ParseIntError),
     ParseFloatError(std::num::ParseFloatError),
+    FormulaError,
     MutexError,
     IndexError,
     NotNumberError,
@@ -37,9 +38,10 @@ pub(crate) fn enter_command(input: String) -> String{
         match process_command(String::from(input)) {
             Ok(output) => output,
             //Err(SpreadsheetError::ExitRequested) => std::process::exit(1),
+            Err(SpreadsheetError::FormulaError) => format!("Circular reference "),
             Err(SpreadsheetError::IndexError) => format!("Index error, please try again"),
             Err(SpreadsheetError::MutexError) => format!("Try again"),
-            Err(SpreadsheetError::ParseIntError(_e)) => format!("Try again"),
+            Err(SpreadsheetError::ParseIntError(_e)) => format!("Parse error, Try again"),
             Err(e) => format!("{:#?}", e),
         }
     }
@@ -95,13 +97,14 @@ impl Cell{
 }
 #[derive(Debug, Clone,Deserialize,Serialize)]
 struct FormulaCell{
-    //cell: String,
     command: String,
+    cell: String,
 }
 impl FormulaCell{
-    pub fn new(input: String)->FormulaCell{
+    pub fn new(input: String, cellinput: String)->FormulaCell{
         self::FormulaCell{
             command:input,
+            cell: cellinput,
         }
     }
     pub fn string_to_f64(&self)-> Result<f64,SpreadsheetError>{
@@ -132,24 +135,24 @@ impl FormulaCell{
                     let input_loc:Vec<String> = input_arr[1]
                         .split("-").map(|x| x.to_string()).collect();
                     let (start_row, start_col): (u8,u8) = (input_loc[0].to_uppercase().as_bytes()[0] - 65,
-                       match input_loc[1].trim_start_matches(|c: char| !c.is_ascii_digit()).parse::<u8>() {
-                           Ok(output) => output,
+                       match input_loc[0].trim_start_matches(|c: char| !c.is_ascii_digit()).parse::<u8>() {
+                           Ok(output) => output - 1,
                            Err(_e) => 0,
                        });
                     let (end_row, end_col): (u8,u8) = (input_loc[1].to_uppercase().as_bytes()[0] - 65,
                        match input_loc[1].trim_start_matches(|c: char| !c.is_ascii_digit()).parse::<u8>() {
-                           Ok(output) => output,
+                           Ok(output) => output - 1,
                            Err(_e) => 0,
                        });
                     let mut var: f64 = 0.0;
-                    for c in start_col..=end_col {
-                        for r in start_row..=end_row{
+                    for r in start_row..=end_row {
+                        for c in start_col..=end_col{
                             println!("{} {}",c,r);
                             {
                                 let db = GRID.lock().map_err(|_| SpreadsheetError::MutexError)?;
                                 let spreadsheet = db.clone();
                                 std::mem::drop(db);
-                                var += match spreadsheet[c as usize][r as usize].get_value() {
+                                var += match spreadsheet[r as usize][c as usize].get_value() {
                                     Some(t) => t,
                                     None => 0.0,
                                 } as f64;
@@ -167,12 +170,12 @@ impl FormulaCell{
                         .split("-").map(|x| x.to_string()).collect();
                     let (start_row, start_col): (u8,u8) = (input_loc[0].to_uppercase().as_bytes()[0] - 65,
                        match input_loc[1].trim_start_matches(|c: char| !c.is_ascii_digit()).parse::<u8>() {
-                           Ok(output) => output,
+                           Ok(output) => output - 1,
                            Err(_e) => 0,
                        });
                     let (end_row, end_col): (u8,u8) = (input_loc[1].to_uppercase().as_bytes()[0] - 65,
                        match input_loc[1].trim_start_matches(|c: char| !c.is_ascii_digit()).parse::<u8>() {
-                           Ok(output) => output,
+                           Ok(output) => output - 1,
                            Err(_e) => 0,
                        });
                     let mut var: f64 = 0.0;
@@ -185,7 +188,7 @@ impl FormulaCell{
                                 let db = GRID.lock().map_err(|_| SpreadsheetError::MutexError)?;
                                 let spreadsheet = db.clone();
                                 std::mem::drop(db);
-                                var += match spreadsheet[c as usize][r as usize].get_value() {
+                                var += match spreadsheet[r as usize][c as usize].get_value() {
                                     Some(t) => t,
                                     None => 0.0,
                                 } as f64;
@@ -376,6 +379,10 @@ fn process_command(input:String) -> Result<String,SpreadsheetError>{
                 if input.len() >= 3 {
                     let mut input_two = input[2];
                     if &input_two[0..1] == "(" && &input_two[input_two.len() - 1..input_two.len()] == ")" {
+
+                        if input_two.contains(input[0]) {
+                            return Err(SpreadsheetError::FormulaError);
+                        }
                         //lock is called on db grid here, causing error when lock is called by FormulaCell creation. TODO: Sanitize with values here
 //                        let input = &input_two[0..input_two.len()];
 //                        let mut input_arr:Vec<String> = input.split_whitespace().map(|x| x.to_string()).collect();
@@ -394,7 +401,7 @@ fn process_command(input:String) -> Result<String,SpreadsheetError>{
 //                            }
 //                        }
 //                        let passedval = &input_arr.clone().join(" ");
-                        let form_val = Cell::Formula(FormulaCell::new(input_two.parse().unwrap()));
+                        let form_val = Cell::Formula(FormulaCell::new(input_two.parse().unwrap(),input[0].parse().unwrap()));
                         let mut db = GRID.lock().map_err(|_| SpreadsheetError::MutexError)?;
                         let row: u8 = input[0].to_uppercase().as_bytes()[0] - 65;
                         let col: u8 = match input[0].trim_start_matches(|c: char| !c.is_ascii_digit()).parse::<u8>() {

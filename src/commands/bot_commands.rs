@@ -49,10 +49,8 @@ fn servers(ctx: &mut Context,msg:&Message)->CommandResult{
             for (guild,arc) in test{
                 if arc.read().name.eq(server_named){
                     let mut response = MessageBuilder::new();
-                    &arc.read().channels.into_iter().for_each(|f|{
-                       println!("{}",f.1.read().name);
-                    });
                     for (userid,username) in &arc.read().members{
+                        println!("{:?}",&arc.as_ref().read().channels.values());
                         response.push(format!(" userid:`{}` username:`{}`\n",userid,username.user.read().name));
                         println!("{}",format!(" userid:`{}` username:`{}`\n",userid,username.user.read().name));
                         for f in &username.roles{
@@ -111,7 +109,7 @@ fn telelink(ctx: &mut Context, msg: &Message) -> CommandResult{
                         println!("{}","channel found");
                         if &input_arr[1].len() -1 == 0{
                             x = true;
-                            embed_sender(ctx, msg, l.0, " ".to_string());
+                            embed_sender(ctx, &msg, l.0, " ".to_string());
                         }else{
                             x= true;
                             embed_sender(ctx,msg,l.0,String::from(&input_arr[2][0..input_arr[2].len()-1]));
@@ -141,6 +139,7 @@ fn telelink(ctx: &mut Context, msg: &Message) -> CommandResult{
     }
     Ok(())
 }
+
 #[command]
 #[description = "Get a copy of the spreadsheet .csv export"]
 fn export(ctx: &mut Context, msg: &Message) -> CommandResult{
@@ -153,6 +152,58 @@ fn export(ctx: &mut Context, msg: &Message) -> CommandResult{
     }){
         println!("Error sending message: {:?}",why);
     };
+    Ok(())
+}
+#[command]
+#[description = "Spreadsheet bot will print the spreadsheet in a different channel with the spreadsheet command"]
+#[aliases("ss")]
+#[only_in(guilds)]
+fn sendspread(ctx: &mut Context, msg: &Message) -> CommandResult{
+    if !msg.is_private() {
+        let string = ctx.clone();
+        let input: String = (&msg.content).parse()?;
+        let mut input_arr:Vec<String> = input.splitn(2," ").map(|x| x.to_string()).collect();
+
+        if input_arr.len() >=2 {
+            let mut x:bool = false;
+            let guildlock =  &msg.guild(&ctx);
+            let test =&guildlock.as_ref().unwrap().read().channels;
+            if &input_arr[0].len() -1 == 0{
+                if let Err(e) = msg.reply(&ctx,"Please specify a real channel name"){
+                    println!("error sending message {}",e);
+                };
+            }
+            let channelsearch = &input_arr[0][0..input_arr[0].len()];
+            test.into_iter().for_each(|f|{
+                if f.1.read().name.eq(channelsearch){
+                    if &input_arr[1].len() -1 == 0{
+                        x = true;
+                        f.0.send_message(ctx.clone(),|f|f.content(";s print"));
+                        //embed_sender(ctx,msg,f.0, " ".to_string());
+                        if let Err(e) = msg.reply(&ctx,"Message sent"){
+                            println!("error sending message {}",e);
+                        };
+                    }else{
+                        x= true;
+                        f.0.send_message(ctx.clone(),|f|f.content(";s print"));
+                        //embed_sender(ctx,msg,f.0,String::from(&input_arr[1][0..input_arr[1].len()]));
+                        if let Err(e) = msg.reply(&ctx,"Message sent"){
+                            println!("error sending message {}",e);
+                        };
+                    }
+                }
+            });
+            if !x {
+                if let Err(e) = msg.reply(&ctx,"channel name not found in this guild (make sure the bot has access to the channel)"){
+                    println!("error sending message {}",e);
+                }
+            }
+        }else{
+            if let Err(e) = msg.reply(&ctx,"Please specify channel"){
+                println!("error sending message {}",e);
+            }
+        }
+    }
     Ok(())
 }
 
@@ -306,9 +357,15 @@ fn telephone(ctx: &mut Context, msg: &Message)-> CommandResult{
                     if &input_arr[1].len() -1 == 0{
                         x = true;
                         embed_sender(ctx,msg,f.0, " ".to_string());
+                        if let Err(e) = msg.reply(&ctx,"Message sent"){
+                            println!("error sending message {}",e);
+                        };
                 }else{
                         x= true;
                         embed_sender(ctx,msg,f.0,String::from(&input_arr[1][0..input_arr[1].len()]));
+                        if let Err(e) = msg.reply(&ctx,"Message sent"){
+                            println!("error sending message {}",e);
+                        };
                     }
                 }
             });
@@ -338,6 +395,8 @@ fn spreadsheethelp(ctx: &mut Context, msg: &Message)-> CommandResult{
                  -A cell can be set to a string, instead of a number, when quotes are in place ( ex: `a1 = \"hello world\" `)\n\
                  -A cell could also reference other cells by putting a cell reference in the deceleration (ex: `a1 = ( b1 * 2 )` )\n\
                  they can also reference multiple cells\n\n\
+                 -Averaging a range can be done with the 'AVG' command within a formula cell (ex: `b5 = ( AVG b1-b4)`)\n\
+                 -Computing the sum of a range can be done with the 'SUM' command within a formula cell (ex: `b5 = SUM b1-b4`)\n\
                  -Spreadsheet can be printed with `;s spread`, `;s spreadsheet` ,or `;s print`\n\
                  -Spreadsheet can be cleared with the `;s clear` command, or combined with a cell ref to clear a cell (ex: `;s clear a1`)\n\
                  -Spreadsheet can be saved with the command `;s save` and loaded with `;s load` for those who want to save and load data\n\

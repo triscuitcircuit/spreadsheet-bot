@@ -174,7 +174,7 @@ struct Owners;
 struct General;
 
 #[group]
-#[commands(spread,invite,spreadsheethelp,export)]
+#[commands(spread,invite,spreadsheethelp,export,sendspread)]
 #[description = ":bar_chart: Spreadsheet"]
 struct Spreadsheet;
 
