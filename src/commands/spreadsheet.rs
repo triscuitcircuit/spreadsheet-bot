@@ -212,6 +212,13 @@ impl FormulaCell{
     }
     pub fn get_text(&self) -> String{ (&self.command).parse().unwrap() }
 }
+pub(crate) fn get_spread()-> String{
+   match get_grid_text(){
+       Ok(output) => output,
+       Err(SpreadsheetError::MutexError) => format!("Try again"),
+       _ => {format!("Try again")}
+   }
+}
 fn get_grid_text() -> Result<String,SpreadsheetError> {
     let db = GRID.lock().map_err(|_| SpreadsheetError::MutexError)?;
     let row: u8 = SPREADROW as u8;

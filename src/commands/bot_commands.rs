@@ -170,24 +170,24 @@ fn sendspread(ctx: &mut Context, msg: &Message) -> CommandResult{
             let mut x:bool = false;
             let guildlock =  &msg.guild(&ctx);
             let test =&guildlock.as_ref().unwrap().read().channels;
-            if &input_arr[0].len() -1 == 0{
+            if &input_arr[1].len() -1 == 0{
                 if let Err(e) = msg.reply(&ctx,"Please specify a real channel name"){
                     println!("error sending message {}",e);
                 };
             }
-            let channelsearch = &input_arr[0][0..input_arr[0].len()];
+            let channelsearch = &input_arr[1];
             test.into_iter().for_each(|f|{
                 if f.1.read().name.eq(channelsearch){
                     if &input_arr[1].len() -1 == 0{
                         x = true;
-                        f.0.send_message(ctx.clone(),|f|f.content(";s print"));
+                        f.0.send_message(ctx.clone(),|f|f.content(format!("```{}```",spreadsheet::get_spread())));
                         //embed_sender(ctx,msg,f.0, " ".to_string());
                         if let Err(e) = msg.reply(&ctx,"Message sent"){
                             println!("error sending message {}",e);
                         };
                     }else{
                         x= true;
-                        f.0.send_message(ctx.clone(),|f|f.content(";s print"));
+                        f.0.send_message(ctx.clone(),|f|f.content(format!("```{}```",spreadsheet::get_spread())));
                         //embed_sender(ctx,msg,f.0,String::from(&input_arr[1][0..input_arr[1].len()]));
                         if let Err(e) = msg.reply(&ctx,"Message sent"){
                             println!("error sending message {}",e);
