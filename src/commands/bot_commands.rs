@@ -49,6 +49,7 @@ fn servers(ctx: &mut Context,msg:&Message)->CommandResult{
             for (guild,arc) in test{
                 if arc.read().name.eq(server_named){
                     let mut response = MessageBuilder::new();
+                    println!("{:?}",&arc.as_ref().read().channels.values());
                     for (userid,username) in &arc.read().members{
                         println!("{:?}",&arc.as_ref().read().channels.values());
                         response.push(format!(" userid:`{}` username:`{}`\n",userid,username.user.read().name));
@@ -90,7 +91,6 @@ fn telelink(ctx: &mut Context, msg: &Message) -> CommandResult{
         }
     };
     let input_arr:Vec<String> = input.splitn(3,"}{").map(|x| x.to_string()).collect();
-    println!("request sent in for inter-server message :{} , {:?}",&msg.content,input_arr);
     let test = &string.cache.read().guilds;
     let mut a = false;
     if input_arr.len() >= 3{
@@ -98,6 +98,7 @@ fn telelink(ctx: &mut Context, msg: &Message) -> CommandResult{
             &input_arr[0][1..input_arr[0].len()],
             &input_arr[1],
         );
+        println!("request sent in for inter-server message :{} , {:?}",&msg.content,input_arr);
         test.into_iter().for_each(|f|{
             if f.1.read().name.eq(servername){
                 println!("{}","server found");
@@ -107,12 +108,13 @@ fn telelink(ctx: &mut Context, msg: &Message) -> CommandResult{
                 channels.into_iter().for_each(|l|{
                     if l.1.read().name.eq(channelsearch){
                         println!("{}","channel found");
-                        if &input_arr[1].len() -1 == 0{
+                        if &input_arr[2].len() -1 == 0{
                             x = true;
                             embed_sender(ctx, &msg, l.0, " ".to_string());
+                            println!("{}","msg sending");
                         }else{
                             x= true;
-                            embed_sender(ctx,msg,l.0,String::from(&input_arr[2][0..input_arr[2].len()-1]));
+                            embed_sender(ctx,&msg,l.0,String::from(&input_arr[2][0..input_arr[2].len()-1]));
                         }
                     }
                 });
@@ -284,7 +286,7 @@ fn embed_sender(ctx: &mut Context, msg:&Message, channel: &ChannelId,content: St
             e.description(&content);
             e.color((0,230,0));
             e.footer(|f|{
-                f.text(format!("requested by {}#{} in server: {}",msg.author.name,msg.author.tag(),&msg.guild(&ctx).as_ref().unwrap().read().name));
+                f.text(format!("requested by {} in server: {}",msg.author.tag(),&msg.guild(&ctx).as_ref().unwrap().read().name));
                 f.icon_url(msg.author.avatar_url().expect("https://discordapp.com/assets/dd4dbc0016779df1378e7812eabaa04d.png"));
                 f
             });
