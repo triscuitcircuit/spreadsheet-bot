@@ -169,7 +169,7 @@ impl FormulaCell{
                     let input_loc:Vec<String> = input_arr[1]
                         .split("-").map(|x| x.to_string()).collect();
                     let (start_row, start_col): (u8,u8) = (input_loc[0].to_uppercase().as_bytes()[0] - 65,
-                       match input_loc[1].trim_start_matches(|c: char| !c.is_ascii_digit()).parse::<u8>() {
+                       match input_loc[0].trim_start_matches(|c: char| !c.is_ascii_digit()).parse::<u8>() {
                            Ok(output) => output - 1,
                            Err(_e) => 0,
                        });
@@ -341,7 +341,7 @@ fn process_command(input:String) -> Result<String,SpreadsheetError>{
                     Ok(output) => output - 1,
                     Err(e) => return Err(SpreadsheetError::ParseIntError(e)),
                 };
-                if col <= db.len() as u8{
+                if col <= SPREADCOL as u8{
                     db[row as usize][col as usize] = Cell::Empty;
                 }else{
                     return Err(SpreadsheetError::IndexError);
@@ -369,7 +369,7 @@ fn process_command(input:String) -> Result<String,SpreadsheetError>{
                     Ok(output) => output - 1,
                     Err(e) => return Err(SpreadsheetError::ParseIntError(e)),
                 };
-                if col <= db.len() as u8{
+                if col <= SPREADCOL as u8{
                     Ok(String::from(format!("{:p}",&db[row as usize][col as usize])))
                 }else{
                     Err(SpreadsheetError::IndexError)
@@ -415,7 +415,7 @@ fn process_command(input:String) -> Result<String,SpreadsheetError>{
                             Ok(output) => output - 1,
                             Err(e) => return Err(SpreadsheetError::ParseIntError(e)),
                         };
-                        if col > db.len() as u8{
+                        if col > SPREADCOL as u8{
                             return Err(SpreadsheetError::IndexError);
                         }else{
                             db[row as usize][col as usize] = form_val.clone();
@@ -428,7 +428,7 @@ fn process_command(input:String) -> Result<String,SpreadsheetError>{
                                 Ok(output) => output - 1,
                                 Err(e) => return Err(SpreadsheetError::ParseIntError(e)),
                             };
-                            if col > db.len() as u8{
+                            if col > SPREADCOL as u8{
                                 return Err(SpreadsheetError::IndexError);
                             }else{
                                 db[row as usize][col as usize] = Cell::Text(input_two[1..input_two.len() - 1].to_string());
@@ -442,7 +442,7 @@ fn process_command(input:String) -> Result<String,SpreadsheetError>{
                                 Ok(output) => output - 1,
                                 Err(e) => return Err(SpreadsheetError::ParseIntError(e)),
                             };
-                            if col > db.len() as u8{
+                            if col > SPREADCOL as u8{
                                 return Err(SpreadsheetError::IndexError);
                             }
                             if &input_two[input_two.len() -1..input_two.len() ] == "%"{
@@ -466,7 +466,7 @@ fn process_command(input:String) -> Result<String,SpreadsheetError>{
                             Ok(output) => output - 1,
                             Err(e) => return Err(SpreadsheetError::ParseIntError(e)),
                         };
-                        if col > db.len() as u8{
+                        if col > SPREADCOL as u8{
                             return Err(SpreadsheetError::IndexError);
                         }
                         return Ok("cell value: ".to_owned() + &db[row as usize][col as usize].full_text());

@@ -49,11 +49,9 @@ fn servers(ctx: &mut Context,msg:&Message)->CommandResult{
             for (guild,arc) in test{
                 if arc.read().name.eq(server_named){
                     let mut response = MessageBuilder::new();
-                    println!("{:?}",&arc.as_ref().read().channels.values());
+                    // println!("{:?}",&arc.as_ref().read().channels.values());
                     for (userid,username) in &arc.read().members{
-                        println!("{:?}",&arc.as_ref().read().channels.values());
                         response.push(format!(" userid:`{}` username:`{}`\n",userid,username.user.read().name));
-                        println!("{}",format!(" userid:`{}` username:`{}`\n",userid,username.user.read().name));
                         for f in &username.roles{
                             //response.push(format!("roles: {}\n",f.to_role_cached(&ctx.cache).unwrap().name));
                             println!("{}",format!("roles: {}\n",f.to_role_cached(&ctx.cache).unwrap().name));
