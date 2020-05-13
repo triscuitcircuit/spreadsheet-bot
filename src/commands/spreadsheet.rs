@@ -335,18 +335,38 @@ fn process_command(input:String) -> Result<String,SpreadsheetError>{
         }
         "CLEAR"=> {
             if input.len() == 2 {
-                let mut db = GRID.lock().map_err(|_| SpreadsheetError::MutexError)?;
-                let row: u8 = input[1].to_uppercase().as_bytes()[0] - 65;
-                let col: u8 = match input[1].trim_start_matches(|c: char| !c.is_ascii_digit()).parse::<u8>() {
-                    Ok(output) => output - 1,
-                    Err(e) => return Err(SpreadsheetError::ParseIntError(e)),
-                };
-                if col <= SPREADROW as u8{
-                    db[row as usize][col as usize] = Cell::Empty;
-                }else{
-                    return Err(SpreadsheetError::IndexError);
-                }
 
+                let mut db = GRID.lock().map_err(|_| SpreadsheetError::MutexError)?;
+                if input[1].contains("-"){
+                    let input_loc: Vec<String> = input[1]
+                        .split("-").map(|x| x.to_string()).collect();
+                    let (start_row, start_col): (u8, u8) = (input_loc[0].to_uppercase().as_bytes()[0] - 65,
+                        match input_loc[0].trim_start_matches(|c: char| !c.is_ascii_digit()).parse::<u8>() {
+                            Ok(output) => output - 1,
+                            Err(_e) => 0,
+                        });
+                    let (end_row, end_col): (u8, u8) = (input_loc[1].to_uppercase().as_bytes()[0] - 65,
+                        match input_loc[1].trim_start_matches(|c: char| !c.is_ascii_digit()).parse::<u8>() {
+                            Ok(output) => output - 1,
+                            Err(_e) => 0,
+                        });
+                    if start_col> SPREADROW as u8 || end_col > SPREADROW as u8{
+                        return Err(SpreadsheetError::IndexError);
+                    }
+                    for r in start_row..=end_row {
+                        for c in start_col..=end_col {
+                            db[r as usize][c as usize] = Cell::Empty;
+                        }
+                    }
+
+                }else {
+                    let row: u8 = input[1].to_uppercase().as_bytes()[0] - 65;
+                    let col: u8 = match input[1].trim_start_matches(|c: char| !c.is_ascii_digit()).parse::<u8>() {
+                        Ok(output) => output - 1,
+                        Err(e) => return Err(SpreadsheetError::ParseIntError(e)),
+                    };
+                    db[row as usize][col as usize] = Cell::Empty;
+                }
             } else {
                 {
                     let mut db = GRID.lock().map_err(|_| SpreadsheetError::MutexError)?;
