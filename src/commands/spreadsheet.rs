@@ -341,7 +341,7 @@ fn process_command(input:String) -> Result<String,SpreadsheetError>{
                     Ok(output) => output - 1,
                     Err(e) => return Err(SpreadsheetError::ParseIntError(e)),
                 };
-                if col <= SPREADCOL as u8{
+                if col <= SPREADROW as u8{
                     db[row as usize][col as usize] = Cell::Empty;
                 }else{
                     return Err(SpreadsheetError::IndexError);
@@ -369,7 +369,7 @@ fn process_command(input:String) -> Result<String,SpreadsheetError>{
                     Ok(output) => output - 1,
                     Err(e) => return Err(SpreadsheetError::ParseIntError(e)),
                 };
-                if col <= SPREADCOL as u8{
+                if col <= SPREADROW as u8{
                     Ok(String::from(format!("{:p}",&db[row as usize][col as usize])))
                 }else{
                     Err(SpreadsheetError::IndexError)
@@ -415,7 +415,7 @@ fn process_command(input:String) -> Result<String,SpreadsheetError>{
                             Ok(output) => output - 1,
                             Err(e) => return Err(SpreadsheetError::ParseIntError(e)),
                         };
-                        if col > SPREADCOL as u8{
+                        if col > SPREADROW as u8{
                             return Err(SpreadsheetError::IndexError);
                         }else{
                             db[row as usize][col as usize] = form_val.clone();
@@ -428,7 +428,7 @@ fn process_command(input:String) -> Result<String,SpreadsheetError>{
                                 Ok(output) => output - 1,
                                 Err(e) => return Err(SpreadsheetError::ParseIntError(e)),
                             };
-                            if col > SPREADCOL as u8{
+                            if col > SPREADROW as u8{
                                 return Err(SpreadsheetError::IndexError);
                             }else{
                                 db[row as usize][col as usize] = Cell::Text(input_two[1..input_two.len() - 1].to_string());
@@ -442,7 +442,7 @@ fn process_command(input:String) -> Result<String,SpreadsheetError>{
                                 Ok(output) => output - 1,
                                 Err(e) => return Err(SpreadsheetError::ParseIntError(e)),
                             };
-                            if col > SPREADCOL as u8{
+                            if col > SPREADROW as u8{
                                 return Err(SpreadsheetError::IndexError);
                             }
                             if &input_two[input_two.len() -1..input_two.len() ] == "%"{
@@ -466,7 +466,7 @@ fn process_command(input:String) -> Result<String,SpreadsheetError>{
                             Ok(output) => output - 1,
                             Err(e) => return Err(SpreadsheetError::ParseIntError(e)),
                         };
-                        if col > SPREADCOL as u8{
+                        if col > SPREADROW as u8{
                             return Err(SpreadsheetError::IndexError);
                         }
                         return Ok("cell value: ".to_owned() + &db[row as usize][col as usize].full_text());
