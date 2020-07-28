@@ -8,10 +8,12 @@ use serenity::{
     framework::standard::{ Args, CommandResult, macros::command, ArgError::Parse },
 };
 
-use std::collections::hash_map::Entry::{ Vacant, Occupied };
+use std::{
+    collections::hash_map::Entry::{ Vacant, Occupied },
+    sync::Mutex
+};
 
 use crate::{ models, DbPool, Bans };
-use std::sync::Mutex;
 
 #[command]
 #[description = "lock a user from bot use"]
@@ -28,6 +30,7 @@ fn lock(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
         let user_id = args.single::<UserId>();
         let time = args.single::<String>();
         let global = args.single::<bool>();
+        println!("{:#?}",user_id);
 
         let (discord_user, user) = match user_id {
             Ok(user_id) => {

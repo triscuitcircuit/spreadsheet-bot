@@ -1,18 +1,24 @@
-use std::collections::HashMap;
-use std::collections::hash_map::Entry::{ Occupied, Vacant };
+use std::collections::{HashMap,hash_map::Entry::{ Occupied, Vacant }};
 
 use chrono::prelude::NaiveDateTime;
-use serenity::model::prelude::{ UserId, GuildId };
+use serenity::model::{prelude::{ UserId, GuildId,Role as SRole },id::RoleId};
 use diesel::prelude::*;
 
 use crate::{ schema, DbPoolType };
+use crate::schema::ban::columns::users;
+use serenity::utils::Colour;
 
 #[derive(Queryable)]
 pub struct User {
     id:         i32,
     discord_id: String,
 }
-
+#[derive(Queryable, Clone)]
+pub struct Role{
+    id: i32,
+    role_id: String,
+    guild: String,
+}
 #[derive(Queryable, Clone)]
 pub struct Ban {
     id:        i32,
@@ -20,25 +26,129 @@ pub struct Ban {
     guild:     Option<String>,
     end_epoch: Option<String>,
 }
+#[derive(Queryable, Clone)]
+pub struct CrossRole{
+    id: i32,
+    role: i32,
+    color: String,
+    mentionable: bool,
+    guild: String,
+    user: i32,
+}
+impl Role{
+    pub fn get_id(&self)-> i32 {self.id}
 
-#[derive(Queryable)]
-pub struct LangStat {
-    id:                i32,
-    lang_name:         String,
-    snippets_executed: i32,
+    pub fn get_role_id(&self)-> RoleId{
+        self.role_id.parse::<u64>().expect("Could not parse RoleId from string").into()
+    }
+
+    pub fn get(discord_role_id: RoleId, db: &DbPoolType)-> Self{
+        use schema::roles::dsl::*;
+
+        let discord_role_id = discord_role_id.to_string();
+
+        let db = db.get().unwrap();
+
+        match roles.filter(role_id.eq(&discord_role_id)).first::<Role>(&db){
+            Ok(lang) => lang,
+            Err(_) =>{
+                let r = diesel::insert_into(roles).values(
+                    role_id.eq(discord_role_id)
+                ).execute(&db);
+                match r{
+                    Ok(_) =>{
+                        roles.order(id.desc())
+                            .first::<Role>(&db)
+                            .unwrap()
+                    },
+                    Err(e)=> panic!(e),
+                }
+            },
+        }
+    }
+
+    pub fn list_role(&self, db: &DbPoolType, input_guild: GuildId, input_color: Colour, role_user: UserId)-> CrossRole{
+        use schema::crossroles::dsl::*;
+
+        let guild_id = format!("{}",input_guild);
+        let color_num = format!("{}",input_color.hex());
+
+        let db = db.get().unwrap();
+
+        let r = diesel::insert_into(crossroles).values((
+            roles.eq(self.id),
+            guild.eq(guild_id),
+            color.eq(color_num),
+            users.eq(self.id),
+            )).execute(&db);
+        match r{
+            Ok(_)=> {
+                crossroles.order(id.desc())
+                    .first::<CrossRole>(&db).unwrap()
+            },
+            Err(e)=> panic!(e),
+        }
+    }
+}
+impl CrossRole{
+    pub fn get_id(&self) -> i32{self.id}
+    pub fn get_guild(&self)-> GuildId{
+        self.guild.parse::<u64>().expect("Could not parse GuildId from string").into()
+    }
+    pub fn get_color(&self)->u32{
+        self.color.parse::<u32>().expect("Could not parse color from string").into()
+    }
+    pub fn get_role(&self, db: &DbPoolType)-> Option<Role>{
+        use schema::roles::dsl::*;
+        let db = db.get().unwrap();
+
+
+        match roles.find(self.role).get_result::<Role>(&db){
+            Ok(res) => Some(res),
+            Err(_) => None
+        }
+    }
+    pub fn get_user(&self, db: &DbPoolType)-> Option<User>{
+        use schema::users::dsl::*;
+        let db = db.get().unwrap();
+
+        match users.find(self.user).get_result::<User>(&db){
+            Ok(res)=> Some(res),
+            Err(_) => None
+        }
+    }
+    pub fn get_roles(db: &DbPoolType)-> HashMap<RoleId,Vec<CrossRole>>{
+        use schema::crossroles::dsl::*;
+
+        let res = crossroles.get_results::<CrossRole>(&db.get().unwrap());
+        match res{
+            Ok(riter) => {
+                let riter: Vec<CrossRole> = riter.into_iter().collect();
+                let mut map: HashMap<RoleId, Vec<CrossRole>> = HashMap::new();
+                for r in riter {
+                    let b_user = r.get_role(&db);
+                    let b_user = match b_user {
+                        Some(u) => u.get_role_id(),
+                        None => continue,
+                    };
+                    let vec = match map.entry(b_user) {
+                        Vacant(entry) => entry.insert(Vec::new()),
+                        Occupied(entry) => entry.into_mut(),
+                    };
+                    vec.push(r);
+                }
+                map
+            },
+            Err(_) => HashMap::new(),
+        }
+    }
 }
 
-#[derive(Queryable)]
-#[allow(dead_code)]
-pub struct Snippet {
-    id:       i32,
-    user:     i32,
-    code:     String,
-    guild:    Option<String>,
-    run_time: String,
-}
+
+
 
 impl User {
+
     pub fn get_id(&self) -> i32 {
         self.id
     }
@@ -48,20 +158,20 @@ impl User {
     }
 
     pub fn get(discord_user_id: UserId, db: &DbPoolType) -> Self {
-        use schema::user::dsl::*;
+        use schema::users::dsl::*;
 
         let discord_user_id = discord_user_id.to_string();
 
         let db = db.get().unwrap();
-        match user.filter(discord_id.eq(&discord_user_id)).first::<User>(&db) {
+        match users.filter(discord_id.eq(&discord_user_id)).first::<User>(&db) {
             Ok(lang) => lang,
             Err(_) => {
-                let r = diesel::insert_into(user).values(
+                let r = diesel::insert_into(users).values(
                     discord_id.eq(discord_user_id)
                 ).execute(&db);
                 match r {
                     Ok(_) => {
-                        user.order(id.desc())
+                        users.order(id.desc())
                             .first::<User>(&db)
                             .unwrap()
                     },
@@ -85,7 +195,7 @@ impl User {
 
         let db = db.get().unwrap();
         let r = diesel::insert_into(ban).values((
-            user.eq(self.id),
+            users.eq(self.id),
             end_epoch.eq(ban_end),
             guild.eq(ban_on_guild),
         )).execute(&db);
@@ -128,9 +238,10 @@ impl Ban {
     }
 
     pub fn get_user(&self, db: &DbPoolType) -> Option<User> {
-        use schema::user::dsl::*;
+        use schema::users::dsl::*;
         let db = db.get().unwrap();
-        match user.find(self.user).get_result::<User>(&db) {
+
+        match users.find(self.user).get_result::<User>(&db) {
             Ok(res) => Some(res),
             Err(_) => None,
         }
