@@ -311,12 +311,12 @@ fn process_command(input:String) -> Result<String,SpreadsheetError>{
             let path = Path::new("spreadsheet.txt");
             let display = path.display();
             let mut file = match File::create(&path){
-                Err(why) => panic!("couldn't create {}: {}", display, why.description()),
+                Err(why) => panic!("couldn't create {}: {}", display, why.to_string()),
                 Ok(file)=> file,
             };
             let serialized = serde_json::to_string(&a).unwrap();
             match file.write_all(serialized.as_bytes()) {
-                Err(why) => panic!("couldn't write to {}: {}", display, why.description()),
+                Err(why) => panic!("couldn't write to {}: {}", display, why.to_string()),
                 Ok(_) => println!("successfully wrote to {}", display),
             }
 
@@ -404,30 +404,12 @@ fn process_command(input:String) -> Result<String,SpreadsheetError>{
         _ =>{
             {
                 if input.len() >= 3 {
-                    let mut input_two = input[2];
+                    let input_two = input[2];
                     if &input_two[0..1] == "(" && &input_two[input_two.len() - 1..input_two.len()] == ")" {
 
                         if input_two.contains(input[0]) {
                             return Err(SpreadsheetError::FormulaError);
                         }
-                        //lock is called on db grid here, causing error when lock is called by FormulaCell creation. TODO: Sanitize with values here
-//                        let input = &input_two[0..input_two.len()];
-//                        let mut input_arr:Vec<String> = input.split_whitespace().map(|x| x.to_string()).collect();
-//                        for i in 0..input_arr.len(){
-//                            if input_arr[i].len() == 2 as usize && &input_arr[i].to_uppercase().as_bytes()[0] >= &65 {
-//                                let row: u8 = input_arr[i].to_uppercase().as_bytes()[0] - 65;
-//                                let col: u8 = match input_arr[i].trim_start_matches(|c: char| !c.is_ascii_digit()).parse::<u8>() {
-//                                    Ok(output) => output,
-//                                    Err(_e) => 0,
-//                                };
-//                                    input_arr[i] = match db[row as usize][(col - 1) as usize].get_value(){
-//                                        Some(num)=> num.to_string(),
-//                                        None=> "0".to_string(),
-//
-//                                    };
-//                            }
-//                        }
-//                        let passedval = &input_arr.clone().join(" ");
                         let form_val = Cell::Formula(FormulaCell::new(input_two.parse().unwrap(),input[0].parse().unwrap()));
                         let mut db = GRID.lock().map_err(|_| SpreadsheetError::MutexError)?;
                         let row: u8 = input[0].to_uppercase().as_bytes()[0] - 65;

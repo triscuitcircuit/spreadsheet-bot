@@ -1,7 +1,14 @@
-//use "*" to configure bot
+extern crate chrono;
+use crate::{models, Bans, DbPool, USERS, commands::spreadsheet};
+use rand::Rng;
+use chrono::{Datelike, Timelike, Utc};
 use serenity::{
+    framework::standard::ArgError::Parse,
+    http::{AttachmentType, routing::RouteInfo::CreateMessage},
     prelude::*,
-    model::{prelude::{UserId,Permissions},channel::{Message,Embed}},
+    model::{prelude::{UserId,Permissions},channel::{Message,Embed},
+        id::ChannelId, channel::Channel,
+    },
     framework::standard::{
         Args,CommandResult,
         CommandOptions,CommandGroup, DispatchError,
@@ -13,130 +20,75 @@ use serenity::{
 };
 use std::{collections::{HashSet},
           env,fmt::write,
-          sync::Arc};
-use crate::commands::spreadsheet;
-use crate::{models, Bans, DbPool, USERS};
-use rand::Rng;
-use serenity::http::AttachmentType;
-use std::path::Path;
-use std::io::Error;
+          sync::Arc,path::Path,io::Error
+};
+use serenity::http::routing::Route::GuildsId;
+use serenity::model::guild::Guild;
+use serenity::model::id::GuildId;
 
 pub(crate) struct ShardManagerContainer;
 impl TypeMapKey for ShardManagerContainer{
     type Value = Arc<Mutex<ShardManager>>;
 }
-extern crate chrono;
-use chrono::{Datelike, Timelike, Utc};
-use serenity::http::routing::RouteInfo::CreateMessage;
-use serenity::model::id::ChannelId;
-use serenity::model::channel::Channel;
-
 
 #[command]
 #[owners_only]
 #[description ="get a list of servers that spreadsheet bot is in"]
 fn servers(ctx: &mut Context,msg:&Message)->CommandResult{
-    let string = ctx.clone();
-    let input = &msg.content;
-    let mut input_arr:Vec<String> = input.splitn(2," ").map(|x| x.to_string()).collect();
-    let test = &string.cache.read().guilds;
-    let mut trt:String = "".to_string();
-    if input_arr.len() >= 2{
-        println!("{:#?}",input_arr);
-        let input_two = &input_arr[1];
-        if &input_two[0..1] == "\"" && &input_two[input_two.len()-1..input_two.len()] == "\""{
-            let server_named = &input_two[1..input_two.len()-1];
-            for (guild,arc) in test{
-                if arc.read().name.eq(server_named){
-                    let mut response = MessageBuilder::new();
-                    // println!("{:?}",&arc.as_ref().read().channels.values());
-                    for (userid,username) in &arc.read().members{
-                        response.push(format!(" userid:`{}` username:`{}`\n",userid,username.user.read().name));
-                        for f in &username.roles{
-                            //response.push(format!("roles: {}\n",f.to_role_cached(&ctx.cache).unwrap().name));
-                            println!("{}",format!("roles: {}\n",f.to_role_cached(&ctx.cache).unwrap().name));
-                        }
-                    }
-                    if let Err(why) =msg.channel_id.say(&ctx.http,&response){
-                        println!("Error sending message: {:?}",why);
-                    };
-                }
-            }
-        } else{
-            if let Err(why) =  msg.reply(ctx,format!("{}","``` Error parsing server name, please enter with quotes,")){
-                println!("Error sending message: {:?}",why);
-            };
-        }
-    }else{
-        for val in test{
-            trt = format!("{}\n> {}", trt, val.1.read().name);
-        }
-        println!("{}",trt);
-    }
+    let a = &ctx.cache.read().guilds;
+    &ctx.cache.read().guilds.iter().for_each(|(guildid,guild)|{
+       println!("server name`{}`",guild.read().name);
+        println!("roles: ");
+        guild.read().roles.iter().for_each(|(x,y)|{
+            print!("{}, ",y.name);
+
+        });
+        println!("channels: ");
+        guild.read().channels.iter().for_each(|(x,y)|{
+           print!("{}, ",y.read().name);
+        });
+    });
     Ok(())
 }
 #[command]
 #[description = "inter server message into another servers channel. Usage ;tl {server_name}{channel_name}{message_content}"]
 #[aliases("tl")]
 #[only_in(guilds)]
-fn telelink(ctx: &mut Context, msg: &Message) -> CommandResult{
+fn telelink(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult{
     let string = ctx.clone();
-    let input: String = {
-        if msg.content.contains(";t "){
-            String::from(format!("{}",msg.content.replace(";tl ", "")))
-        }else{
-            String::from(format!("{}",msg.content.replace(";telelink ", "")))
+    let server_name = args.single::<String>();
+    let channel_id = args.single::<ChannelId>();
+    let data = args.rest();
+
+    let server = match server_name{
+        Ok(content)=>{
+            content.to_string()
+        }
+        Err(_)=>{
+            let _ = msg.reply(&ctx, &format!("please specify a guild name "));
+            return Ok(());
         }
     };
-    let input_arr:Vec<String> = input.splitn(3,"}{").map(|x| x.to_string()).collect();
-    let test = &string.cache.read().guilds;
-    let mut a = false;
-    if input_arr.len() >= 3{
-        let (servername,channelsearch)= (
-            &input_arr[0][1..input_arr[0].len()],
-            &input_arr[1],
-        );
-        println!("request sent in for inter-server message :{} , {:?}",&msg.content,input_arr);
-        test.into_iter().for_each(|f|{
-            if f.1.read().name.eq(servername){
-                println!("{}","server found");
-                a = true;
-                let mut x = false;
-                let channels = &f.1.as_ref().read().channels;
-                channels.into_iter().for_each(|l|{
-                    if l.1.read().name.eq(channelsearch){
-                        println!("{}","channel found");
-                        if &input_arr[2].len() -1 == 0{
-                            x = true;
-                            embed_sender(ctx, &msg, l.0, " ".to_string());
-                            println!("{}","msg sending");
-                        }else{
-                            x= true;
-                            embed_sender(ctx,&msg,l.0,String::from(&input_arr[2][0..input_arr[2].len()-1]));
-                        }
-                    }
-                });
-                if !x {
-                    if let Err(e) = msg.reply(&ctx,"channel name not found in this guild (make sure the bot has access to the channel)"){
-                        println!("error sending message {}",e);
-                    }
-                }
 
-
-
-            }
-            //if f.1.read().name.eq(channelsearch){
-        });
-        if !a{
-            if let Err(e) = msg.reply(ctx,"server not found, please make sure the bot is in the server and has perms"){
-                println!("Error occurred:{}",e);
-            }
+    let channel = match channel_id{
+        Ok(channel_id)=>{
+            let channel = channel_id.to_channel(&ctx).unwrap();
+            channel
         }
-    }else{
-        if let Err(e) = msg.reply(ctx,"please read the example in ;help (dont forget the curly braces)"){
-            println!("Error occurred:{}",e);
+        Err(Parse(e))=>{
+            let _ = msg.reply(&ctx, &format!("please specify a valid channel ({})",e));
+            return Ok(());
         }
-    }
+        Err(_e)=>{
+            let _ = msg.reply(&ctx,"please specify a valid channel");
+            return Ok(())
+        }
+    };
+    &ctx.cache.read().guilds.iter().for_each(|(guild,guildlock)|{
+        if guildlock.read().name == server{
+            embed_sender(&mut ctx.clone(), msg, &channel.id(), data.parse().unwrap())
+        }
+    });
     Ok(())
 }
 
@@ -155,55 +107,35 @@ fn export(ctx: &mut Context, msg: &Message) -> CommandResult{
     Ok(())
 }
 #[command]
-#[description = "Spreadsheet bot will print the spreadsheet in a different channel with the spreadsheet command"]
+#[description = "Spreadsheet bot will print the spreadsheet in a different channel(s) with the spreadsheet command(ex ;ss #general #channel1 #channel2)"]
 #[aliases("ss")]
 #[only_in(guilds)]
-fn sendspread(ctx: &mut Context, msg: &Message) -> CommandResult{
-    if !msg.is_private() {
-        let string = ctx.clone();
-        let input: String = (&msg.content).parse()?;
-        let mut input_arr:Vec<String> = input.splitn(2," ").map(|x| x.to_string()).collect();
-
-        if input_arr.len() >=2 {
-            let mut x:bool = false;
-            let guildlock =  &msg.guild(&ctx);
-            let test =&guildlock.as_ref().unwrap().read().channels;
-            if &input_arr[1].len() -1 == 0{
-                if let Err(e) = msg.reply(&ctx,"Please specify a real channel name"){
-                    println!("error sending message {}",e);
-                };
+fn sendspread(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+    for _ in 0..args.len() {
+        let channel_id = args.single::<ChannelId>();
+        let channel = match channel_id {
+            Ok(channel_id) => {
+                let channel = channel_id.to_channel(&ctx).unwrap();
+                channel
             }
-            let channelsearch = &input_arr[1];
-            test.into_iter().for_each(|f|{
-                if f.1.read().name.eq(channelsearch){
-                    if &input_arr[1].len() -1 == 0{
-                        x = true;
-                        f.0.send_message(ctx.clone(),|f|f.content(format!("```{}```",spreadsheet::get_spread())));
-                        //embed_sender(ctx,msg,f.0, " ".to_string());
-                        if let Err(e) = msg.reply(&ctx,"Message sent"){
-                            println!("error sending message {}",e);
-                        };
-                    }else{
-                        x= true;
-                        f.0.send_message(ctx.clone(),|f|f.content(format!("```{}```",spreadsheet::get_spread())));
-                        //embed_sender(ctx,msg,f.0,String::from(&input_arr[1][0..input_arr[1].len()]));
-                        if let Err(e) = msg.reply(&ctx,"Message sent"){
-                            println!("error sending message {}",e);
-                        };
-                    }
-                }
-            });
-            if !x {
-                if let Err(e) = msg.reply(&ctx,"channel name not found in this guild (make sure the bot has access to the channel)"){
-                    println!("error sending message {}",e);
-                }
+            Err(Parse(e)) => {
+                let _ = msg.reply(&ctx, &format!("please specify a valid channel ({})", e));
+                return Ok(())
             }
-        }else{
-            if let Err(e) = msg.reply(&ctx,"Please specify channel"){
-                println!("error sending message {}",e);
+            Err(_e) => {
+                let _ = msg.reply(&ctx, "please specify a valid channel");
+                return Ok(())
             }
-        }
+        };
+        if let Err(e) = &channel.id().send_message(ctx.clone(), |content|
+            content.content(format!("```{}```", spreadsheet::get_spread()))
+        ) {
+            println!("error sending message {}", e);
+        };
     }
+    if let Err(e) = msg.reply(&ctx, "Message sent") {
+        println!("error sending message {}", e);
+    };
     Ok(())
 }
 
@@ -297,89 +229,67 @@ fn embed_sender(ctx: &mut Context, msg:&Message, channel: &ChannelId,content: St
 
 }
 #[command]
-#[description="this command determines a random number in a range (ex ;r 6)"]
+#[description="this command determines a random number in a range (ex ;r 6) defaults to 6"]
 #[aliases("r")]
-fn roll(ctx: &mut Context, msg: &Message)-> CommandResult{
-
-    let input = &msg.content;
-    let input_arr:Vec<String> = input.splitn(2," ").map(|x| x.to_string()).collect();
-    if input_arr.len() >=2{
+fn roll(ctx: &mut Context, msg: &Message, mut args: Args)-> CommandResult{
+    let contents = match args.single::<String>(){
+        Ok(content)=>{
+            let content = content.to_string();
+            content
+        }
+        Err(_)=>{
+            "6".to_string()
+        }
+    };
         let mut rng = rand::thread_rng();
-        let num: u8 = match input_arr[1].trim_start_matches(|c: char| !c.is_ascii_digit()).parse::<u8>(){
+        let num: u8 = match contents.trim_start_matches(|c: char| !c.is_ascii_digit()).parse::<u8>(){
             Ok(e)=> e,
             Err(_r)=> 6,
         };
         let roll = rng.gen_range(0,num);
-        embed_sender(ctx,msg,&msg.channel_id,format!("bot rolled: {}",roll));
-    }else{
-        if let Err(e) = msg.reply(&ctx,"Please specify a real whole number"){
-            println!("error sending message {}",e);
-        };
-    }
+        embed_sender(&mut ctx.clone(),msg,&msg.channel_id,format!("bot rolled: {}",roll));
     Ok(())
-}
+    }
 #[command]
 #[description="get current time in UTC"]
 #[aliases("time")]
 fn curtime(ctx: &mut Context, msg: &Message)-> CommandResult{
     let dt = Utc::now();
-    embed_sender(ctx,msg,&msg.channel_id,String::from(dt.format("%a %b %e %T %Y").to_string()));
+    embed_sender(&mut ctx.clone(),msg,&msg.channel_id,String::from(dt.format("%a %b %e %T %Y").to_string()));
     Ok(())
 }
 #[command]
-#[description = "telephone to another channel on the server with ';t {channel name}{msg contents}' (dont forget to the leave the curly braces))"]
+#[description = "telephone to another channel on the server(s) with ';t #channel \"msg contents\" ' \n this command could also be used on other server channels"]
 #[aliases("t")]
 #[only_in(guilds)]
-fn telephone(ctx: &mut Context, msg: &Message)-> CommandResult{
-    if !msg.is_private() {
-        let string = ctx.clone();
-        let input: String = {
-            if msg.content.contains(";t "){
-                String::from(format!("{}",msg.content.replace(";t ", "")))
-            }else{
-                String::from(format!("{}",msg.content.replace(";telephone ", "")))
-            }
-        };
-        let mut input_arr:Vec<String> = input.splitn(2,"}{").map(|x| x.to_string()).collect();
+fn telephone(ctx: &mut Context, msg: &Message, mut args: Args)-> CommandResult{
+    let channel_id = args.quoted().single::<ChannelId>();
+    let msg_contents = args.quoted().single::<String>();
 
-        if input_arr.len() >=2 {
-            let mut x:bool = false;
-            let guildlock =  &msg.guild(&ctx);
-            let test =&guildlock.as_ref().unwrap().read().channels;
-            if &input_arr[0].len() -1 == 0{
-                if let Err(e) = msg.reply(&ctx,"Please specify a real channel name"){
-                    println!("error sending message {}",e);
-                };
-            }
-            let channelsearch = &input_arr[0][1..input_arr[0].len()];
-            test.into_iter().for_each(|f|{
-                if f.1.read().name.eq(channelsearch){
-                    if &input_arr[1].len() -1 == 0{
-                        x = true;
-                        embed_sender(ctx,msg,f.0, " ".to_string());
-                        if let Err(e) = msg.reply(&ctx,"Message sent"){
-                            println!("error sending message {}",e);
-                        };
-                }else{
-                        x= true;
-                        embed_sender(ctx,msg,f.0,String::from(&input_arr[1][0..input_arr[1].len()]));
-                        if let Err(e) = msg.reply(&ctx,"Message sent"){
-                            println!("error sending message {}",e);
-                        };
-                    }
-                }
-            });
-            if !x {
-                if let Err(e) = msg.reply(&ctx,"channel name not found in this guild (make sure the bot has access to the channel)"){
-                    println!("error sending message {}",e);
-                }
-            }
-        }else{
-            if let Err(e) = msg.reply(&ctx,"Please specify channel"){
-                println!("error sending message {}",e);
-            }
+    let channel = match channel_id{
+        Ok(channel_id)=>{
+            let channel = channel_id.to_channel(&ctx).unwrap();
+            channel
         }
-    }
+        Err(Parse(e))=>{
+            let _ = msg.reply(&ctx, &format!("please specify a valid channel ({})",e));
+            return Ok(());
+        }
+        Err(_e)=>{
+            let _ = msg.reply(&ctx,"please specify a valid channel");
+            return Ok(())
+        }
+    };
+    let contents = match msg_contents{
+        Ok(content)=>{
+            let content = content.to_string();
+            content
+        }
+        Err(_)=>{
+            " ".to_string()
+        }
+    };
+    embed_sender(&mut ctx.clone(), msg, &channel.id(), contents);
     Ok(())
 
 }
@@ -443,15 +353,10 @@ fn about(ctx: &mut Context, msg: &Message)-> CommandResult{
 #[description = "interact with the spreadsheet"]
 #[example =";s a1 = 21"]
 #[aliases("s")]
-fn spread(ctx: &mut Context, msg: &Message)-> CommandResult{
-    let input: String = {
-       if msg.content.contains(";s "){
-           String::from(format!("{}",msg.content.replace(";s ", "")))
-       }else{
-           String::from(format!("{}",msg.content.replace(";spreadsheet ", "")))
-       }
-    };
-    let mut l = spreadsheet::enter_command(input.parse().unwrap());
+fn spread(ctx: &mut Context, msg: &Message, mut args: Args)-> CommandResult{
+    let input = args.rest();
+
+    let mut l = spreadsheet::enter_command(input.parse()?);
     println!("username:{},command:{}",msg.author.name,msg.content);
     println!("user id:{}, username:{}, spreadsheet \n{}",msg.author.id,msg.author.name,l);
     l = format!("\n```{}```",l);
