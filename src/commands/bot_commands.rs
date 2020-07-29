@@ -25,11 +25,38 @@ use std::{collections::{HashSet},
 use serenity::http::routing::Route::GuildsId;
 use serenity::model::guild::Guild;
 use serenity::model::id::GuildId;
+use crate::commands::bot_commands::embed::embed_sender;
+
 
 pub(crate) struct ShardManagerContainer;
 impl TypeMapKey for ShardManagerContainer{
     type Value = Arc<Mutex<ShardManager>>;
 }
+
+pub mod embed {
+    use serenity::model::id::ChannelId;
+    use serenity::model::channel::Message;
+    use serenity::client::Context;
+
+    pub fn embed_sender(ctx: &mut Context, msg: &Message, channel: &ChannelId, content: String) {
+        if let Err(e) = channel.send_message(&ctx.http, |r| {
+            r.embed(|e| {
+                e.description(&content);
+                e.color((0, 230, 0));
+                e.footer(|f| {
+                    f.text(format!("requested by {} in server: {}", msg.author.tag(), &msg.guild(&ctx).as_ref().unwrap().read().name));
+                    f.icon_url(msg.author.avatar_url().expect("https://discordapp.com/assets/dd4dbc0016779df1378e7812eabaa04d.png"));
+                    f
+                });
+                e
+            });
+            r
+        }) {
+            println!("Error sending message {}", e);
+        }
+    }
+}
+
 
 #[command]
 #[owners_only]
@@ -191,12 +218,6 @@ fn ping(ctx: &mut Context, msg: &Message)-> CommandResult{
 }
 #[command]
 #[owners_only]
-fn interroles(ctx: &mut Context, msg: &Message)-> CommandResult{
-    //TODO
-    Ok(())
-}
-#[command]
-#[owners_only]
 #[description = "bot conifg, type 'true' for interserver roles (when released) "]
 fn config(ctx: &mut Context, msg: &Message)-> CommandResult{
     if let Err(e) = msg.author.direct_message(ctx,|m|{
@@ -210,27 +231,10 @@ fn config(ctx: &mut Context, msg: &Message)-> CommandResult{
     }
     Ok(())
 }
-fn embed_sender(ctx: &mut Context, msg:&Message, channel: &ChannelId,content: String){
-    if let Err(e) = channel.send_message(&ctx.http,|r|{
-        r.embed(|e|{
-            e.description(&content);
-            e.color((0,230,0));
-            e.footer(|f|{
-                f.text(format!("requested by {} in server: {}",msg.author.tag(),&msg.guild(&ctx).as_ref().unwrap().read().name));
-                f.icon_url(msg.author.avatar_url().expect("https://discordapp.com/assets/dd4dbc0016779df1378e7812eabaa04d.png"));
-                f
-            });
-            e
-        });
-        r
-    }){
-        println!("Error sending message {}",e);
-    }
-
-}
 #[command]
 #[description="this command determines a random number in a range (ex ;r 6) defaults to 6"]
 #[aliases("r")]
+#[only_in(guilds)]
 fn roll(ctx: &mut Context, msg: &Message, mut args: Args)-> CommandResult{
     let contents = match args.single::<String>(){
         Ok(content)=>{

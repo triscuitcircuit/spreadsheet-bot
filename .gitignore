@@ -1372,3 +1372,4 @@ target/release/.fingerprint/adler32-380ea79c4c8b3e17/invoked.timestamp
 target/release/.fingerprint/adler32-380ea79c4c8b3e17/dep-lib-adler32-380ea79c4c8b3e17
 target/release/.cargo-lock
 target/.rustc_info.json
+spreadsheetbot.log

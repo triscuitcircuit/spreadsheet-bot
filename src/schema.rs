@@ -14,7 +14,6 @@ table! {
         color -> Varchar,
         mentionable -> Bool,
         guild -> Varchar,
-        users -> Int4,
     }
 }
 
@@ -34,7 +33,7 @@ table! {
 }
 
 joinable!(ban -> users (users));
-joinable!(crossroles -> users (users));
+joinable!(crossroles -> roles (roles));
 
 allow_tables_to_appear_in_same_query!(
     ban,
