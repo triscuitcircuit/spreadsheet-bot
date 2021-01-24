@@ -10,8 +10,6 @@ CREATE TABLE IF NOT EXISTS crossroles(
     color VARCHAR NOT NULL,
     mentionable BOOLEAN NOT NULL DEFAULT 'f',
     guild VARCHAR NOT NULL,
-    users INTEGER NOT NULL,
-    FOREIGN KEY (users) REFERENCES users (id),
     FOREIGN KEY (roles) REFERENCES roles (id)
 );
 CREATE TABLE IF NOT EXISTS ban(

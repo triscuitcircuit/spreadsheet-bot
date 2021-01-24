@@ -33,19 +33,22 @@ pub struct CrossRole{
     color: String,
     mentionable: bool,
     guild: String,
-    user: i32,
 }
 impl Role{
+    pub fn get_guild(&self)-> GuildId{
+        self.guild.parse::<u64>().expect("Could not parse GuildId from string").into()
+    }
     pub fn get_id(&self)-> i32 {self.id}
 
     pub fn get_role_id(&self)-> RoleId{
         self.role_id.parse::<u64>().expect("Could not parse RoleId from string").into()
     }
 
-    pub fn get(discord_role_id: RoleId, db: &DbPoolType)-> Self{
+    pub fn get(discord_role_id: RoleId, discord_guild_id: GuildId,db: &DbPoolType)-> Self{
         use schema::roles::dsl::*;
 
         let discord_role_id = discord_role_id.to_string();
+       let discord_guild_id = discord_guild_id.0.to_string();
 
         let db = db.get().unwrap();
 
@@ -53,7 +56,10 @@ impl Role{
             Ok(lang) => lang,
             Err(_) =>{
                 let r = diesel::insert_into(roles).values(
-                    role_id.eq(discord_role_id)
+                    (
+                        role_id.eq(discord_role_id),
+                        guild.eq(discord_guild_id),
+                    )
                 ).execute(&db);
                 match r{
                     Ok(_) =>{
@@ -72,14 +78,15 @@ impl Role{
 
         let guild_id = format!("{}",input_guild);
         let color_num = format!("{}",input_color.hex());
+        let user = role_user.0 as i32;
 
         let db = db.get().unwrap();
 
         let r = diesel::insert_into(crossroles).values((
             roles.eq(self.id),
-            guild.eq(guild_id),
             color.eq(color_num),
-            users.eq(self.id),
+            mentionable.eq(true),
+            guild.eq(guild_id),
             )).execute(&db);
         match r{
             Ok(_)=> {
@@ -88,6 +95,16 @@ impl Role{
             },
             Err(e)=> panic!(e),
         }
+    }
+    pub fn unlist(&self,msg_guild: GuildId, db: &DbPoolType)-> Option<i32>{
+        let db = db.get().unwrap();
+        use schema::crossroles::dsl::*;
+        use diesel::dsl::sql;
+
+        let role_id : Option<i32> = crossroles.select(id).filter(id.eq(self.id)).first(&db).ok();
+
+        let _ = diesel::delete(crossroles.filter(id.eq(self.id))).execute(&db);
+        role_id
     }
 }
 impl CrossRole{
@@ -105,15 +122,6 @@ impl CrossRole{
 
         match roles.find(self.role).get_result::<Role>(&db){
             Ok(res) => Some(res),
-            Err(_) => None
-        }
-    }
-    pub fn get_user(&self, db: &DbPoolType)-> Option<User>{
-        use schema::users::dsl::*;
-        let db = db.get().unwrap();
-
-        match users.find(self.user).get_result::<User>(&db){
-            Ok(res)=> Some(res),
             Err(_) => None
         }
     }

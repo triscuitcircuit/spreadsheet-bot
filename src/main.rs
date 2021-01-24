@@ -1,9 +1,12 @@
+mod logger;
+
 #[macro_use]extern crate lazy_static;
 extern crate yard;
 extern crate csv;
 #[macro_use]extern crate diesel;
 extern crate rand;
 extern crate dotenv;
+
 pub mod schema;
 pub mod models;
 pub mod tools;
@@ -49,12 +52,8 @@ use serenity::{
   },HelpOptions, Args, CommandGroup, help_commands, CommandOptions, CheckResult, DispatchError},
   model::event::ResumedEvent,
 };
-//use crate::models::CrossRole;
+use std::str::FromStr;
 
-struct CommandCounter;
-impl TypeMapKey for CommandCounter{
-    type Value = HashMap<String,u64>;
-}
 struct ShardManagerContainer;
 
 impl Key for ShardManagerContainer {
@@ -182,7 +181,7 @@ struct General;
 struct Spreadsheet;
 
 #[group]
-#[commands(rolelistadd,rolelist)]
+#[commands(interroles,interrolesadd,interrolesdel)]
 #[description = "Inter-roles"]
 struct Interroles;
 
@@ -198,9 +197,24 @@ fn set_data()->Result<(),UserError>{
     db[2] = "No time stated".to_string();
     Ok(())
 }
-// fn init_logging(){
-//     use SimpleLog::
-// }
+fn init_logging(level: String, file: String) {
+    use simplelog::{ CombinedLogger, ConfigBuilder, LevelFilter, TermLogger, TerminalMode };
+
+    let config = ConfigBuilder::new()
+        .set_time_format_str("[%Y-%m-%d %H:%M:%S]")
+        .build();
+
+    let log_level_term = level;
+    let log_level_file = file;
+
+    CombinedLogger::init(
+        vec![
+            TermLogger::new(log_level_term.parse().unwrap(), config, TerminalMode::Mixed).unwrap(),
+            Box::new(logger::FileLogger::new("Spreadsheetbot.log", log_level_file.parse().unwrap())),
+        ]
+    ).unwrap();
+}
+
 fn main() {
     let token = env::var("DISCORD_TOKEN")
         .expect("Expected a token in the environment");
@@ -213,7 +227,7 @@ fn main() {
     if let Err(e) = set_data(){
         panic!("Error: {:?}",e);
     };
-
+    init_logging("Info".parse().unwrap(), "Debug".parse().unwrap());
 
     let manager = ConnectionManager::<PgConnection>::new(database_url);
     let pool = Pool::builder()
