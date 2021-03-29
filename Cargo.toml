@@ -15,7 +15,7 @@ libc = "0.2.0"
 toml = "0.5.6"
 csv = "1.1.3"
 log = "0.4"
-simplelog = "0.7.5"
+simplelog = "0.10.0"
 typemap = "0.3.3"
 chrono = "0.4.11"
 diesel = { version = "1.4", features = ["postgres", "chrono", "r2d2"] }
