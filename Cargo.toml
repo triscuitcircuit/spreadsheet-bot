@@ -19,7 +19,7 @@ simplelog = "0.7.5"
 typemap = "0.3.3"
 chrono = "0.4.11"
 diesel = { version = "1.4", features = ["postgres", "chrono", "r2d2"] }
-libsqlite3-sys = { version = "0.17.3", features = ["bundled"] }
+libsqlite3-sys = { version = "0.22.0", features = ["bundled"] }
 diesel_migrations = "1.4.0"
 dotenv = "0.9.0"
 rand = "0.7.3"
