@@ -1,0 +1,37 @@
+version: 2
+updates:
+- package-ecosystem: cargo
+  directory: "/"
+  schedule:
+    interval: daily
+  open-pull-requests-limit: 10
+  ignore:
+  - dependency-name: libc
+    versions:
+    - 0.2.86
+    - 0.2.87
+    - 0.2.88
+    - 0.2.89
+    - 0.2.90
+    - 0.2.91
+    - 0.2.92
+    - 0.2.93
+  - dependency-name: libsqlite3-sys
+    versions:
+    - 0.20.1
+    - 0.22.0
+  - dependency-name: serde
+    versions:
+    - 1.0.123
+    - 1.0.124
+  - dependency-name: serenity
+    versions:
+    - 0.10.2
+    - 0.10.4
+  - dependency-name: serde_json
+    versions:
+    - 1.0.62
+    - 1.0.63
+  - dependency-name: simplelog
+    versions:
+    - 0.9.0
